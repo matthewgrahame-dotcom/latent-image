@@ -196,6 +196,18 @@
     line-height: 1.45;
     color: var(--ink-dim);
   }
+  .reading-link {
+    display: inline-block;
+    margin-top: 0.42rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--ink);
+  }
+  .reading-link:hover { color: var(--safelight); border-color: var(--safelight); }
   .frame {
     display: grid;
     grid-template-columns: 118px 1fr;
@@ -628,6 +640,7 @@ const ARCHIVE = [
     f: { brightness: 0.6, contrast: 0.55, warmth: 0.55, row: 0.3, col: 0.5 } },
   { title: "Behind the Gare Saint-Lazare", byline: "Henri Cartier-Bresson, 1932", desc: "A figure mid-leap over a flooded rail yard, doubled in the water below.",
     analysis: "Cartier-Bresson pre-framed the scene — the fence, the ladder, the reflection — and waited for a subject to complete it. The 'decisive moment' is really decisive framing plus patience for the moment to arrive.",
+    readingUrl: "https://www.centrepompidou.fr/en/ressources/oeuvre/cByr4z",
     recreate: { light: "Any even daylight — this technique doesn't depend on lighting.", focus: "Lock focus and exposure on an empty spot first (tap and hold), then wait for something to move into it.", exposure: "Standard daylight exposure, locked before the moment happens.", post: "B&W, keep it a little rough — don't oversharpen a genuinely candid frame." },
     c: { symmetry: 0.15, thirds: 0.5, diagonal: 0.55, negSpace: 0.4 },
     f: { brightness: 0.48, contrast: 0.7, warmth: 0.0, row: 0.65, col: 0.45 } },
@@ -671,8 +684,16 @@ const ARCHIVE = [
     recreate: { light: "Strong side or cross-lighting, ideally midday to afternoon — this is what carves shadow into rock texture.", focus: "Deep focus front to back, everything sharp.", exposure: "Use HDR or bracket to hold detail in both sunlit rock and deep shadow.", post: "B&W, strong contrast, boost local texture/clarity throughout, keep the sky strip small and simple." },
     c: { symmetry: 0.3, thirds: 0.35, diagonal: 0.3, negSpace: 0.15 },
     f: { brightness: 0.55, contrast: 0.8, warmth: 0.0, row: 0.55, col: 0.55 } },
+  { title: "Trolley", byline: "National Photo Company Collection, c. 1910–1935", desc: "A trolley seen straight-on, its repeated windows and bodywork dividing the scene into a sequence of compartments.",
+    analysis: "The vehicle supplies the composition: repeated windows create frames within the frame. Look for structures that naturally divide people or details into a visual sequence.",
+    img: "https://tile.loc.gov/storage-services/service/pnp/npcc/31000/31016v.jpg",
+    sourceUrl: "https://www.loc.gov/pictures/item/2016824585/",
+    recreate: { light: "Available daylight.", focus: "Keep the repeated structure and its contents readable.", exposure: "Expose for the exterior and allow window interiors to vary naturally.", post: "B&W, moderate contrast; keep the geometry clean." },
+    c: { symmetry: 0.6, thirds: 0.35, diagonal: 0.1, negSpace: 0.25 },
+    f: { brightness: 0.52, contrast: 0.55, warmth: 0.0, row: 0.48, col: 0.5 } },
   { title: "Moonrise, Hernandez", byline: "Ansel Adams, 1941", desc: "A pale moon and clouds over a dark New Mexico village, crosses catching the last light.",
     analysis: "Adams printed the sky almost black so the small bright moon and the lit crosses are the only things the eye can land on. Extreme contrast can substitute for a zoom lens — it isolates a small subject in a wide scene.",
+    readingUrl: "https://www.anseladams.com/products/explore-moonrise-hernandez-new-mexico",
     recreate: { light: "Golden hour with the moon already visible — a narrow window of a few minutes.", focus: "Deep focus across the whole scene.", exposure: "Expose for the sky and moon; let the foreground go very dark.", post: "B&W, push the sky to near-black with curves, keep just a few bright details lit." },
     c: { symmetry: 0.45, thirds: 0.7, diagonal: 0.1, negSpace: 0.8 },
     f: { brightness: 0.28, contrast: 0.88, warmth: -0.1, row: 0.22, col: 0.55 } },
@@ -684,6 +705,7 @@ const ARCHIVE = [
     f: { brightness: 0.35, contrast: 0.75, warmth: 0.05, row: 0.58, col: 0.55 } },
   { title: "Dovima with Elephants", byline: "Richard Avedon, 1955", desc: "A gowned figure between two circus elephants, stark studio light.",
     analysis: "Scale contrast — a slender figure between two enormous animals — makes the composition before any pose or expression matters. Placing your subject against something wildly mismatched in size is an easy way to generate tension.",
+    readingUrl: "https://www.moma.org/collection/works/46095",
     recreate: { light: "Flat, even light with minimal shadow — bright overcast or diffused studio light.", focus: "Sharp on the subject.", exposure: "Balanced, high-key — nothing should go very dark.", post: "High-contrast B&W, clean whites, minimal grain for a polished finish." },
     c: { symmetry: 0.7, thirds: 0.3, diagonal: 0.1, negSpace: 0.5 },
     f: { brightness: 0.45, contrast: 0.82, warmth: 0.0, row: 0.4, col: 0.5 } },
@@ -719,6 +741,7 @@ const ARCHIVE = [
     f: { brightness: 0.38, contrast: 0.62, warmth: 0.5, row: 0.5, col: 0.45 } },
   { title: "Rue Mouffetard", byline: "Henri Cartier-Bresson, 1954", desc: "A boy grins, two wine bottles cradled under his arms, Paris.",
     analysis: "The expression is everything here — a plain street background stays out of the way of one unguarded, perfectly timed grin. When you have a strong candid moment, resist the urge to add more to the frame around it.",
+    readingUrl: "https://www.centrepompidou.fr/en/ressources/oeuvre/cezzGMA",
     recreate: { light: "Available daylight on a plain street.", focus: "Pre-focus (zone focus) at the distance you expect your subject to be, then wait for the moment.", exposure: "Standard, unremarkable — nothing should call attention to the exposure choices.", post: "B&W, candid grain. Leave the background plain — don't crop for drama." },
     c: { symmetry: 0.4, thirds: 0.55, diagonal: 0.15, negSpace: 0.5 },
     f: { brightness: 0.55, contrast: 0.58, warmth: 0.05, row: 0.55, col: 0.45 } },
@@ -801,9 +824,17 @@ const ARCHIVE = [
   // description rather than reproducing it.
   { title: "Trolley — New Orleans", byline: "Robert Frank, 1955 (style study, no image)", desc: "A streetcar's row of windows divides each passenger into their own separate frame, shot from outside through the glass.",
     analysis: "The trolley's row of windows turns one photograph into a grid of small separate portraits, each rider isolated in their own frame within the frame. When a scene already has a repeating structure — windows, doorways, fence posts — shooting straight-on can turn it into a naturally divided grid of sub-portraits.",
+    readingUrl: "https://www.nga.gov/artworks/118179-trolley-new-orleans",
     recreate: { light: "Available daylight, harsh or contrasty is fine — Frank printed gritty, not polished.", focus: "Sharp enough to read expressions through glass.", exposure: "Standard; let some panes go darker or lighter naturally.", post: "B&W, boost grain, deep blacks, a slightly rough contrast curve rather than smooth tonal grading." },
     c: { symmetry: 0.5, thirds: 0.4, diagonal: 0.1, negSpace: 0.2 },
     f: { brightness: 0.5, contrast: 0.6, warmth: 0.0, row: 0.4, col: 0.5 } },
+  { title: "Colorful Building Façade, Old Havana", byline: "Carol M. Highsmith, 2010", desc: "An ordinary façade turned into a photograph by saturated colour and strong architectural divisions.",
+    analysis: "Colour and geometry do the work. Blocks, edges, windows and planes make an everyday subject visually assertive — the scene matters because of how it is seen, not because it is inherently dramatic.",
+    img: "https://tile.loc.gov/storage-services/service/pnp/highsm/06000/06036v.jpg",
+    sourceUrl: "https://www.loc.gov/resource/highsm.06036/",
+    recreate: { light: "Even daylight that keeps colour saturated.", focus: "Deep focus; keep edges and planes crisp.", exposure: "Protect bright painted surfaces from clipping.", post: "Keep colour strong but believable; straighten only if it strengthens the geometry." },
+    c: { symmetry: 0.55, thirds: 0.35, diagonal: 0.2, negSpace: 0.4 },
+    f: { brightness: 0.62, contrast: 0.5, warmth: 0.45, row: 0.48, col: 0.5 } },
   { title: "The Red Ceiling", byline: "William Eggleston, 1973 (style study, no image)", desc: "A blood-red painted ceiling, wires radiating out from a bare bulb, shot from below — an ordinary domestic ceiling made the entire subject.",
     analysis: "Eggleston pointed the camera at a ceiling — the part of a room nobody looks at — and let one saturated colour be the whole subject. Ordinary, overlooked parts of a scene (a ceiling, a parking lot, a shopping cart) can carry a photograph on colour and geometry alone, without a conventional subject.",
     recreate: { light: "Available indoor light, doesn't need to flatter — ordinary lighting is the point.", focus: "Sharp, deadpan, no soft-focus.", exposure: "Expose to keep the dominant colour fully saturated, not washed out.", post: "Boost saturation on the dominant colour specifically; keep everything else true-to-life." },
@@ -811,41 +842,80 @@ const ARCHIVE = [
     f: { brightness: 0.4, contrast: 0.45, warmth: 0.7, row: 0.45, col: 0.5 } },
   { title: "McLean, Virginia", byline: "Joel Sternfeld, 1978 (style study, no image)", desc: "A fireman calmly buys a pumpkin at a roadside stand while a house burns in the background \u2014 large-format clarity holding both equally sharp.",
     analysis: "The joke only works because foreground and background are rendered with equal, unhurried clarity — nothing is softened to hint that it matters less. Look for two unrelated things happening in the same frame, and hold both in sharp focus so the viewer has to notice the connection themselves.",
+    readingUrl: "https://www.moma.org/collection/works/82379",
     recreate: { light: "Even daylight, nothing dramatic.", focus: "Deep focus front to back — everything sharp, no separation via blur.", exposure: "Standard, balanced across the whole scene.", post: "Color, naturalistic, understated — the irony should feel barely noticed, not staged." },
     c: { symmetry: 0.25, thirds: 0.55, diagonal: 0.15, negSpace: 0.5 },
     f: { brightness: 0.6, contrast: 0.45, warmth: 0.15, row: 0.5, col: 0.4 } },
+  { title: "Two Girls in White Dresses", byline: "Arnold Genthe, c. 1906–1911", desc: "Two similarly dressed girls presented together in Genthe's San Francisco studio garden.",
+    analysis: "Similarity makes comparison unavoidable. Matching dress and presentation make small differences in posture and expression more noticeable — repetition amplifies difference.",
+    img: "https://tile.loc.gov/storage-services/service/pnp/agc/7a17000/7a17600/7a17698v.jpg",
+    sourceUrl: "https://www.loc.gov/pictures/item/2018704699/",
+    recreate: { light: "Soft, even daylight.", focus: "Keep both faces equally sharp.", exposure: "Balance both subjects evenly.", post: "Keep treatment consistent across both figures so differences come from the people, not processing." },
+    c: { symmetry: 0.78, thirds: 0.25, diagonal: 0.05, negSpace: 0.35 },
+    f: { brightness: 0.62, contrast: 0.42, warmth: 0.15, row: 0.38, col: 0.5 } },
   { title: "Identical Twins, Roselle, New Jersey", byline: "Diane Arbus, 1967 (style study, no image)", desc: "Two sisters in matching dresses, photographed dead centre, direct flash, both looking straight into the lens with near-identical but subtly different expressions.",
-    analysis: "Perfect symmetry between two people, combined with direct flash and a level, unflinching gaze, makes the tiny differences between them the entire subject. With two very similar subjects, matching the framing exactly can make their small human differences the most interesting thing in the photograph.",
+    analysis: "Near-symmetry, matching clothes and a direct frontal gaze make tiny differences in expression suddenly feel enormous. Repetition amplifies difference: make almost everything the same and the human variations become the subject.",
+    readingUrl: "https://artmuseum.princeton.edu/art/collections/objects/13413",
     recreate: { light: "Direct, flat on-camera flash — not flattering, and that's the point.", focus: "Sharp on both faces equally.", exposure: "Balanced flash exposure, avoid shadow falloff to one side.", post: "B&W, minimal retouching, let the flatness of the light stand." },
     c: { symmetry: 0.8, thirds: 0.2, diagonal: 0.05, negSpace: 0.35 },
     f: { brightness: 0.6, contrast: 0.6, warmth: 0.0, row: 0.35, col: 0.5 } },
+  { title: "A Crowd on D-Day in Madison Square", byline: "Howard R. Hollem / OWI, 1944", desc: "A dense New York crowd where faces, gestures and clusters compete across the frame.",
+    analysis: "There is no single clean subject. The eye scans and discovers several relationships inside the crowd. A busy frame can work when the chaos is organised rather than removed.",
+    img: "https://tile.loc.gov/storage-services/service/pnp/fsa/8d36000/8d36200/8d36276v.jpg",
+    sourceUrl: "https://www.loc.gov/pictures/collection/fsa/item/2017866757/",
+    recreate: { light: "Available daylight.", focus: "Use enough depth of field to keep several layers readable.", exposure: "Prioritise faces and midtones.", post: "B&W, natural contrast; don't crop away the density." },
+    c: { symmetry: 0.2, thirds: 0.45, diagonal: 0.25, negSpace: 0.12 },
+    f: { brightness: 0.55, contrast: 0.55, warmth: 0.0, row: 0.45, col: 0.5 } },
   { title: "World's Fair, New York", byline: "Garry Winogrand, 1964 (style study, no image)", desc: "A busy street scene shot close and wide, horizon tilted, several unrelated moments happening simultaneously across the frame.",
-    analysis: "Winogrand tilted the horizon and got physically close with a wide lens, so the frame reads as barely-controlled chaos rather than a composed 'shot' — several small dramas compete for attention instead of one clear subject. Deliberately tilting the frame and standing closer than feels comfortable can turn a static scene into something that feels caught mid-motion.",
+    analysis: "Several people, gestures and sight-lines compete across the frame, yet the eye keeps discovering small relationships between them. Don't simplify a crowded scene automatically — learn to organise the chaos so several little pictures can coexist inside one frame.",
+    readingUrl: "https://www.nga.gov/artworks/111736-worlds-fair-new-york-city",
     recreate: { light: "Available daylight, doesn't need to be soft or flattering.", focus: "Sharp foreground, deep enough to read background action too.", exposure: "Standard street exposure, fast enough shutter to freeze movement.", post: "B&W, moderate contrast, keep the tilt — don't crop the energy out." },
     c: { symmetry: 0.2, thirds: 0.4, diagonal: 0.4, negSpace: 0.15 },
     f: { brightness: 0.55, contrast: 0.55, warmth: 0.0, row: 0.45, col: 0.5 } },
+  { title: "Children Playing in the Street, 61st Street", byline: "Walker Evans, 1938", desc: "Children occupy a New York street, absorbed in play rather than posing for the photographer.",
+    analysis: "The behaviour is the subject. The children create their own gestures and relationships while the street remains part of the story. Watch rather than direct.",
+    img: "https://cdn.loc.gov/service/pnp/fsa/8a19000/8a19000/8a19092v.jpg",
+    sourceUrl: "https://www.loc.gov/pictures/item/2017732843/",
+    recreate: { light: "Available daylight.", focus: "Keep the active gesture sharp while retaining enough environment to explain it.", exposure: "Use a fast enough shutter to freeze fleeting movement.", post: "B&W, natural contrast; preserve the surrounding street." },
+    c: { symmetry: 0.25, thirds: 0.58, diagonal: 0.25, negSpace: 0.38 },
+    f: { brightness: 0.56, contrast: 0.52, warmth: 0.0, row: 0.5, col: 0.48 } },
   { title: "New York (children with chalk)", byline: "Helen Levitt, c. 1940 (style study, no image)", desc: "Children playing in the street, caught mid-gesture, chalk drawings on the sidewalk around them \u2014 completely unposed, unaware of the camera.",
-    analysis: "Nobody in the frame is aware of being photographed — the composition depends entirely on Levitt being close enough to see the moment but invisible enough not to change it. Getting physically close without being noticed captures a kind of unselfconscious gesture a posed shot never will.",
+    analysis: "The children are absorbed in their own world rather than performing for the camera. Gesture, play and the surrounding street become a little piece of theatre. Watch behaviour rather than poses, and let ordinary activity arrange the frame for you.",
     recreate: { light: "Available daylight.", focus: "Sharp on the main gesture, background can be soft.", exposure: "Fast shutter to freeze a fleeting motion — a jump, a throw, a spin.", post: "B&W, natural contrast, no dramatic grading — the moment carries the image." },
     c: { symmetry: 0.25, thirds: 0.55, diagonal: 0.25, negSpace: 0.45 },
     f: { brightness: 0.58, contrast: 0.5, warmth: 0.0, row: 0.5, col: 0.5 } },
   { title: "The Critic", byline: "Weegee, 1943 (style study, no image)", desc: "Two glamorously dressed women arriving at the opera, caught by harsh direct flash, with a visibly poorer onlooker in the foreground staring at them.",
-    analysis: "Direct, harsh on-camera flash flattens everything equally and freezes the scene instantly — no flattering falloff, no soft edges, which is exactly what makes it feel documented rather than composed. A single harsh flash aimed straight at the subject can turn an ordinary scene into something that feels caught rather than staged.",
+    analysis: "The flash is only part of it: the photograph collides two very different social worlds in one brutally clear frame. Look for opposites that can coexist in the same picture — the relationship between them can become the photograph.",
+    readingUrl: "https://www.nga.gov/artworks/116431-critic",
     recreate: { light: "Direct on-camera flash, no diffusion.", focus: "Sharp, deep enough to catch foreground and background subjects both.", exposure: "Flash-balanced; let ambient light fall away to black behind the flash's reach.", post: "B&W, high contrast, deep blacks outside the flash's throw." },
     c: { symmetry: 0.2, thirds: 0.5, diagonal: 0.25, negSpace: 0.25 },
     f: { brightness: 0.45, contrast: 0.75, warmth: 0.0, row: 0.4, col: 0.45 } },
+  { title: "Mugsy's Espresso, Post Falls, Idaho", byline: "John Margolies", desc: "Everyday roadside architecture in Post Falls, photographed with straightforward colour and deliberate attention.",
+    analysis: "Nothing dramatic needs to happen. Signage, colour, architecture and empty space become worth looking at because the frame treats them seriously and precisely.",
+    img: "https://tile.loc.gov/storage-services/service/pnp/mrg/01200/01296v.jpg",
+    sourceUrl: "https://www.loc.gov/resource/mrg.01296/",
+    recreate: { light: "Even daylight; ordinary light is part of the point.", focus: "Deep focus, level camera, crisp edges.", exposure: "Natural colour with highlights protected.", post: "Minimal grading; let the scene remain deadpan." },
+    c: { symmetry: 0.68, thirds: 0.3, diagonal: 0.1, negSpace: 0.42 },
+    f: { brightness: 0.66, contrast: 0.42, warmth: 0.18, row: 0.46, col: 0.5 } },
   { title: "U.S. 10, Post Falls, Idaho", byline: "Stephen Shore, 1974 (style study, no image)", desc: "A deadpan, symmetrical American roadside scene \u2014 a gas station or street corner \u2014 shot in full colour with large-format clarity and no obvious emotional cue.",
-    analysis: "Shore composed ordinary roadside America with the same formal rigour a landscape painter would use for a mountain — centred, level, evenly lit, every sign and wire in focus. Treating a completely unremarkable place with total formal seriousness can make it feel worth looking at simply because of how carefully it's framed.",
+    analysis: "Shore gives an almost aggressively ordinary roadside scene total formal attention: colour, signs, road, buildings and empty space all matter. The subject doesn't have to be remarkable — deliberate looking, geometry and colour can make the ordinary worth examining.",
     recreate: { light: "Even daylight, midday is fine — nothing moody.", focus: "Deep focus, everything sharp.", exposure: "Balanced, natural colour, nothing crushed or blown.", post: "Colour, minimal grading — keep it looking like an accurate document, not a stylised photo." },
     c: { symmetry: 0.7, thirds: 0.25, diagonal: 0.1, negSpace: 0.45 },
     f: { brightness: 0.65, contrast: 0.4, warmth: 0.15, row: 0.45, col: 0.5 } },
+  { title: "Two Dogs Meeting on a New York City Sidewalk", byline: "Angelo Rizzuto, 1958", desc: "Two dogs meet at pavement level on a New York sidewalk, turning an everyday encounter into a small visual event.",
+    analysis: "Lowering the camera changes the hierarchy of the scene: the dogs become the protagonists and the human-scale street becomes their environment. Camera height alone can make the ordinary funny or strange.",
+    img: "https://tile.loc.gov/storage-services/service/pnp/ppmsca/70400/70413v.jpg",
+    sourceUrl: "https://www.loc.gov/pictures/item/2020636585/",
+    recreate: { light: "Available daylight.", focus: "Get down low and keep the interaction sharp.", exposure: "Standard street exposure.", post: "B&W, natural contrast; preserve the low viewpoint." },
+    c: { symmetry: 0.4, thirds: 0.5, diagonal: 0.15, negSpace: 0.42 },
+    f: { brightness: 0.56, contrast: 0.48, warmth: 0.0, row: 0.72, col: 0.5 } },
   { title: "New York City (dog legs)", byline: "Elliott Erwitt, 1974 (style study, no image)", desc: "Three sets of legs \u2014 a tiny dog in booties, its owner, and a huge dog \u2014 cropped at the knee, the joke entirely in the scale contrast and the crop itself.",
-    analysis: "Cropping out everything above the knee removes all context except the one relationship that matters — the wild difference in scale between the two dogs. Deliberately cropping out the 'obvious' part of a scene (the faces) can isolate the one visual relationship the photo is actually about.",
+    analysis: "The low camera height and radical crop remove the expected human portrait and turn legs, paws and scale into a visual joke. Change your camera height and crop away the obvious information: an ordinary encounter can become funny, strange or graphic.",
     recreate: { light: "Available daylight, doesn't matter much.", focus: "Sharp on the main subjects at ground level — shoot from a low angle.", exposure: "Standard.", post: "B&W, natural contrast, crop tight and low — trust the joke to read without any faces in frame." },
     c: { symmetry: 0.45, thirds: 0.45, diagonal: 0.1, negSpace: 0.5 },
     f: { brightness: 0.55, contrast: 0.5, warmth: 0.0, row: 0.75, col: 0.5 } },
   { title: "Corner Portrait", byline: "Irving Penn, style study, no image", desc: "A subject photographed pressed into the actual corner of a studio, two walls meeting behind them, isolating and slightly confining the pose.",
-    analysis: "Penn built an actual physical corner in the studio and posed subjects inside it — the confinement itself does the psychological work, no props or backdrop needed. A literal corner, or any tight physical space, can pressure a subject into a more revealing, less performed pose than an open studio would.",
+    analysis: "Penn built a physical corner and made the sitter negotiate it. The restriction changes posture — leaning, bracing, folding and twisting become part of the portrait. Constrain the space and see what the body does.",
     recreate: { light: "Simple, even studio light — one or two sources, nothing elaborate.", focus: "Sharp on the face.", exposure: "Balanced; let the corner's shadow read naturally.", post: "B&W, clean, minimal retouching — let the physical setup do the work, not the processing." },
     c: { symmetry: 0.65, thirds: 0.3, diagonal: 0.35, negSpace: 0.5 },
     f: { brightness: 0.5, contrast: 0.6, warmth: 0.0, row: 0.35, col: 0.5 } },
@@ -1085,7 +1155,8 @@ function showResults(liveFeatures) {
     el.innerHTML = `
       <h3>${r.ref.title}</h3>
       <div class="byline mono">${r.ref.byline}</div>
-      <p>${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')} ${r.ref.analysis}</p>`;
+      <p>${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')} ${r.ref.analysis}</p>
+      ${r.ref.readingUrl ? `<a class="reading-link" href="${r.ref.readingUrl}">View photograph →</a>` : ''}`;
     readingList.appendChild(el);
   });
   document.getElementById('furtherReading').style.display = readingMatches.length ? 'block' : 'none';
