@@ -300,6 +300,27 @@
     transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
   }
   .recreate-btn:hover { background: var(--safelight); border-color: var(--safelight); color: #fff; }
+  .photo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+  }
+  .photo-actions .recreate-btn { margin-top: 0; }
+  .capture-btn {
+    background: var(--safelight);
+    border-color: var(--safelight);
+    color: #fff;
+  }
+  .capture-btn:hover { background: var(--safelight-bright); border-color: var(--safelight-bright); }
+  .gallery-card .photo-actions {
+    padding: 0 0.65rem 0.7rem;
+  }
+  .gallery-card .photo-actions .recreate-btn {
+    flex: 1 1 auto;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
 
   .modal-overlay {
     position: fixed;
@@ -612,7 +633,7 @@
     <div class="attempt-section">
       <div class="attempt-label mono">TRY IT</div>
       <button class="recreate-btn" id="attemptBtn" type="button">Capture your attempt</button>
-      <input type="file" id="attemptInput" accept="image/*">
+      <input type="file" id="attemptInput" accept="image/*" capture="environment">
       <div id="attemptResult"></div>
       <div class="attempt-history" id="attemptHistory"></div>
     </div>
@@ -1203,10 +1224,14 @@ function showResults(liveFeatures) {
         <div class="byline mono">${r.ref.byline}</div>
         <p class="desc">${r.ref.desc}</p>
         <p class="analysis">${r.ref.analysis}</p>
-        <button class="recreate-btn">Recreate this look</button>
+        <div class="photo-actions">
+          <button class="recreate-btn recreate-guide-btn" type="button">Recreate this look</button>
+          <button class="recreate-btn capture-btn" type="button">Capture your attempt</button>
+        </div>
       </div>`;
     strip.appendChild(el);
-    el.querySelector('.recreate-btn').addEventListener('click', () => openRecreateModal(r.ref));
+    el.querySelector('.recreate-guide-btn').addEventListener('click', () => openRecreateModal(r.ref));
+    el.querySelector('.capture-btn').addEventListener('click', () => captureAttemptFor(r.ref));
   });
 
   const readingList = document.getElementById('readingList');
@@ -1364,6 +1389,13 @@ function openRecreateModal(ref) {
   void renderAttemptHistory(ref);
 }
 
+function captureAttemptFor(ref) {
+  openRecreateModal(ref);
+  // The native image picker uses the camera directly on supported phones
+  // because the input carries capture="environment".
+  requestAnimationFrame(() => document.getElementById('attemptInput').click());
+}
+
 function closeRecreateModal() {
   document.getElementById('recreateModal').classList.remove('open');
   currentModalRef = null;
@@ -1498,9 +1530,16 @@ function buildGallery() {
       <div class="gc-meta">
         <h4>${ref.title}</h4>
         <div class="gc-byline mono">${ref.byline}</div>
+      </div>
+      <div class="photo-actions">
+        <button class="recreate-btn recreate-guide-btn" type="button">Recreate</button>
+        <button class="recreate-btn capture-btn" type="button">Capture attempt</button>
       </div>`;
     grid.appendChild(card);
-    card.addEventListener('click', () => openRecreateModal(ref));
+    card.querySelector('.thumb').addEventListener('click', () => openRecreateModal(ref));
+    card.querySelector('.gc-meta').addEventListener('click', () => openRecreateModal(ref));
+    card.querySelector('.recreate-guide-btn').addEventListener('click', () => openRecreateModal(ref));
+    card.querySelector('.capture-btn').addEventListener('click', () => captureAttemptFor(ref));
   });
 
   ARCHIVE.filter(ref => !ref.img).forEach(ref => {
