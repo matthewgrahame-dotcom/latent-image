@@ -161,6 +161,41 @@
     flex-direction: column;
     gap: 1.1rem;
   }
+  .further-reading {
+    margin-top: 1.7rem;
+    padding-top: 0.2rem;
+  }
+  .further-reading-intro {
+    margin: -0.2rem 0 0.85rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--ink-dim);
+  }
+  .reading-list {
+    display: grid;
+    gap: 0.7rem;
+  }
+  .reading-item {
+    border-left: 2px solid var(--line);
+    padding: 0.25rem 0 0.25rem 0.8rem;
+  }
+  .reading-item h3 {
+    margin: 0 0 0.12rem;
+    font-size: 1rem;
+    font-weight: 500;
+    font-style: italic;
+  }
+  .reading-item .byline {
+    font-size: 0.76rem;
+    color: var(--ink-dim);
+    margin-bottom: 0.25rem;
+  }
+  .reading-item p {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--ink-dim);
+  }
   .frame {
     display: grid;
     grid-template-columns: 118px 1fr;
@@ -515,6 +550,11 @@
   <section class="results" id="results" style="display:none;">
     <div class="results-label mono">WORTH LOOKING AT BEFORE YOU SHOOT</div>
     <div class="strip" id="strip"></div>
+    <div class="further-reading" id="furtherReading">
+      <div class="results-label mono">FURTHER READING</div>
+      <p class="further-reading-intro">Related photographs worth seeking out. These are referenced for study rather than reproduced here.</p>
+      <div class="reading-list" id="readingList"></div>
+    </div>
   </section>
 
   <section class="gallery-section" id="gallerySection" style="display:none;">
@@ -523,7 +563,7 @@
   </section>
 
   <div class="note">
-    Point your camera at a scene and Latent Image surfaces historic photographs with a similar composition — light, structure, symmetry, where the eye lands — along with what makes each one work and how to recreate it with the camera you already have. Matching happens entirely on your device, comparing composition and tonal qualities rather than recognising objects or scenes, so a match reflects shape and light, not subject matter. Most photographs shown are the real historic image, drawn from public archives; a small number of especially well-known photographs are still under copyright, and for those you'll see the same analysis and technique guide without reproducing the photograph itself. Nothing is uploaded. Live viewfinder frames are analysed in memory and discarded; when you capture an attempt, a compressed copy and its analysis are saved only on this device so you can revisit your progress.
+    Point your camera at a scene and Latent Image surfaces historic photographs with a similar composition — light, structure, symmetry, where the eye lands — along with what makes each one work and how to recreate it with the camera you already have. Matching happens entirely on your device, comparing composition and tonal qualities rather than recognising objects or scenes, so a match reflects shape and light, not subject matter. Primary matches use historic photographs the app can reproduce from public-domain or otherwise reusable sources. Copyright-sensitive works are kept separate under Further Reading: they can inform the lesson without being reproduced or displacing a viewable example. Nothing is uploaded. Live viewfinder frames are analysed in memory and discarded; when you capture an attempt, a compressed copy and its analysis are saved only on this device so you can revisit your progress.
   </div>
 </div>
 
@@ -609,6 +649,7 @@ const ARCHIVE = [
     f: { brightness: 0.58, contrast: 0.5, warmth: 0.0, row: 0.42, col: 0.5 } },
   { title: "The Tetons and the Snake River", byline: "Ansel Adams, 1942", desc: "A river bends towards jagged peaks under a churning sky, Wyoming.",
     analysis: "The river's S-curve leads the eye from the bottom edge all the way to the peaks — a leading line doing the work an arrow would otherwise have to. Look for any curve or path in a landscape and put it at the base of the frame.",
+    img: "images/079-aag-01-14-1374m.jpg",
     recreate: { light: "Strong directional afternoon light with dramatic cloud cover.", focus: "Deep focus front to back — landscape/auto mode, not portrait blur.", exposure: "Use your phone's HDR mode to hold detail in both bright sky and dark land.", post: "B&W, strong contrast curve, darken the sky selectively, boost cloud and mountain detail." },
     c: { symmetry: 0.6, thirds: 0.55, diagonal: 0.35, negSpace: 0.5 },
     f: { brightness: 0.5, contrast: 0.85, warmth: -0.05, row: 0.55, col: 0.5 } },
@@ -1009,19 +1050,21 @@ function renderTonal(canvas, f) {
 function showResults(liveFeatures) {
   const ranked = ARCHIVE
     .map(ref => ({ ref, d: distance(liveFeatures, { ...ref.f, ...ref.c }) }))
-    .sort((a,b) => a.d - b.d)
-    .slice(0, 3);
+    .sort((a,b) => a.d - b.d);
+
+  // Primary comparisons must be photographs we can actually reproduce.
+  const visibleMatches = ranked.filter(item => item.ref.img).slice(0, 3);
+  // Copyright-sensitive/no-image references remain useful context, but never
+  // displace a viewable example in the main comparison.
+  const readingMatches = ranked.filter(item => !item.ref.img).slice(0, 3);
 
   const strip = document.getElementById('strip');
   strip.innerHTML = '';
-  ranked.forEach((r, i) => {
+  visibleMatches.forEach((r) => {
     const el = document.createElement('div');
     el.className = 'frame';
-    const plate = r.ref.img
-      ? `<img class="tonal" src="${r.ref.img}" alt="${r.ref.title}">`
-      : `<canvas class="tonal"></canvas>`;
     el.innerHTML = `
-      ${plate}
+      <img class="tonal" src="${r.ref.img}" alt="${r.ref.title}">
       <div class="meta">
         <div class="kicker mono">${reasonFor(liveFeatures, r.ref)}</div>
         <h3>${r.ref.title}</h3>
@@ -1031,9 +1074,21 @@ function showResults(liveFeatures) {
         <button class="recreate-btn">Recreate this look</button>
       </div>`;
     strip.appendChild(el);
-    if (!r.ref.img) renderTonal(el.querySelector('canvas.tonal'), r.ref.f);
     el.querySelector('.recreate-btn').addEventListener('click', () => openRecreateModal(r.ref));
   });
+
+  const readingList = document.getElementById('readingList');
+  readingList.innerHTML = '';
+  readingMatches.forEach((r) => {
+    const el = document.createElement('div');
+    el.className = 'reading-item';
+    el.innerHTML = `
+      <h3>${r.ref.title}</h3>
+      <div class="byline mono">${r.ref.byline}</div>
+      <p>${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')} ${r.ref.analysis}</p>`;
+    readingList.appendChild(el);
+  });
+  document.getElementById('furtherReading').style.display = readingMatches.length ? 'block' : 'none';
   document.getElementById('results').style.display = 'block';
 }
 
