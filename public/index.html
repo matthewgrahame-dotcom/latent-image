@@ -358,6 +358,72 @@
     font-size: 0.85rem;
     color: var(--ink-dim);
   }
+  .attempt-score {
+    margin-top: 0.55rem;
+    font-size: 0.7rem;
+    color: var(--safelight);
+    letter-spacing: 0.04em;
+  }
+  .attempt-history {
+    margin-top: 1.2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line-soft);
+  }
+  .attempt-history-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-bottom: 0.7rem;
+  }
+  .attempt-history-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+  }
+  .attempt-history-trend {
+    font-size: 0.78rem;
+    color: var(--ink-dim);
+    line-height: 1.4;
+  }
+  .attempt-history-list {
+    display: grid;
+    gap: 0.7rem;
+  }
+  .attempt-history-item {
+    display: grid;
+    grid-template-columns: 82px 1fr;
+    gap: 0.8rem;
+    align-items: center;
+    border: 1px solid var(--line-soft);
+    padding: 0.55rem;
+  }
+  .attempt-history-thumb {
+    width: 82px;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    background: #000;
+  }
+  .attempt-history-score {
+    font-size: 0.68rem;
+    color: var(--safelight);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.2rem;
+  }
+  .attempt-history-date {
+    font-size: 0.7rem;
+    color: var(--ink-dim);
+    margin-bottom: 0.25rem;
+  }
+  .attempt-history-verdict {
+    font-size: 0.84rem;
+    line-height: 1.35;
+  }
+  .attempt-history-empty {
+    font-size: 0.82rem;
+    color: var(--ink-dim);
+    line-height: 1.45;
+  }
 
   .modal-footnote {
     margin-top: 1.2rem;
@@ -457,7 +523,7 @@
   </section>
 
   <div class="note">
-    Point your camera at a scene and Latent Image surfaces historic photographs with a similar composition — light, structure, symmetry, where the eye lands — along with what makes each one work and how to recreate it with the camera you already have. Matching happens entirely on your device, comparing composition and tonal qualities rather than recognising objects or scenes, so a match reflects shape and light, not subject matter. Most photographs shown are the real historic image, drawn from public archives; a small number of especially well-known photographs are still under copyright, and for those you'll see the same analysis and technique guide without reproducing the photograph itself. Nothing you capture is uploaded or stored — it never leaves this page.
+    Point your camera at a scene and Latent Image surfaces historic photographs with a similar composition — light, structure, symmetry, where the eye lands — along with what makes each one work and how to recreate it with the camera you already have. Matching happens entirely on your device, comparing composition and tonal qualities rather than recognising objects or scenes, so a match reflects shape and light, not subject matter. Most photographs shown are the real historic image, drawn from public archives; a small number of especially well-known photographs are still under copyright, and for those you'll see the same analysis and technique guide without reproducing the photograph itself. Nothing is uploaded. Live viewfinder frames are analysed in memory and discarded; when you capture an attempt, a compressed copy and its analysis are saved only on this device so you can revisit your progress.
   </div>
 </div>
 
@@ -474,6 +540,7 @@
       <button class="recreate-btn" id="attemptBtn" type="button">Capture your attempt</button>
       <input type="file" id="attemptInput" accept="image/*">
       <div id="attemptResult"></div>
+      <div class="attempt-history" id="attemptHistory"></div>
     </div>
 
     <div class="modal-footnote">General technique, not device-specific settings — works with any phone or camera. Read "expose for X" as tap-to-expose on X, and "deep focus" vs "shallow" as your camera's normal vs portrait mode.</div>
@@ -970,6 +1037,125 @@ function showResults(liveFeatures) {
 }
 
 let currentModalRef = null;
+let currentAttemptPreviewUrl = null;
+
+const ATTEMPTS_DB = 'latent-image-attempts';
+const ATTEMPTS_STORE = 'attempts';
+
+function attemptRefKey(ref) {
+  return ref.title + '::' + ref.byline;
+}
+
+function openAttemptsDb() {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) {
+      reject(new Error('IndexedDB unavailable'));
+      return;
+    }
+    const request = indexedDB.open(ATTEMPTS_DB, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      const store = db.objectStoreNames.contains(ATTEMPTS_STORE)
+        ? request.transaction.objectStore(ATTEMPTS_STORE)
+        : db.createObjectStore(ATTEMPTS_STORE, { keyPath: 'id' });
+      if (!store.indexNames.contains('refKey')) {
+        store.createIndex('refKey', 'refKey', { unique: false });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error('Could not open attempt history'));
+  });
+}
+
+async function saveAttempt(record) {
+  const db = await openAttemptsDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(ATTEMPTS_STORE, 'readwrite');
+    tx.objectStore(ATTEMPTS_STORE).put(record);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error || new Error('Could not save attempt'));
+    tx.onabort = () => reject(tx.error || new Error('Could not save attempt'));
+  });
+  db.close();
+}
+
+async function attemptsForRef(ref) {
+  const db = await openAttemptsDb();
+  const attempts = await new Promise((resolve, reject) => {
+    const tx = db.transaction(ATTEMPTS_STORE, 'readonly');
+    const request = tx.objectStore(ATTEMPTS_STORE).index('refKey').getAll(attemptRefKey(ref));
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error || new Error('Could not read attempt history'));
+  });
+  db.close();
+  return attempts.sort((a, b) => b.createdAt - a.createdAt);
+}
+
+function scoreFromDistance(d) {
+  return Math.max(0, Math.min(100, Math.round(100 - d * 35)));
+}
+
+function trendForAttempts(attempts) {
+  if (attempts.length < 2) return 'First saved attempt — this is your baseline.';
+  const latest = attempts[0];
+  const previous = attempts[1];
+  const delta = latest.score - previous.score;
+  const bestBefore = Math.max(...attempts.slice(1).map(item => item.score));
+  if (latest.score > bestBefore) return 'Best yet — your latest attempt is the closest so far.';
+  if (delta >= 3) return 'Getting closer — up ' + delta + ' match points from your previous attempt.';
+  if (delta <= -3) return 'A little further away this time — down ' + Math.abs(delta) + ' match points.';
+  return 'Holding steady — your latest attempt is very close to the previous one.';
+}
+
+async function renderAttemptHistory(ref) {
+  const el = document.getElementById('attemptHistory');
+  if (!el) return;
+  el.innerHTML = '<div class="attempt-history-empty">Loading saved attempts…</div>';
+  try {
+    const attempts = await attemptsForRef(ref);
+    if (currentModalRef !== ref) return;
+    if (!attempts.length) {
+      el.innerHTML = '<div class="attempt-history-head"><div class="attempt-history-title mono">MY ATTEMPTS</div></div><div class="attempt-history-empty">Your attempts on this photograph will appear here automatically.</div>';
+      return;
+    }
+    const shown = attempts.slice(0, 6);
+    el.innerHTML = '<div class="attempt-history-head"><div class="attempt-history-title mono">MY ATTEMPTS · ' + attempts.length + '</div></div>' +
+      '<div class="attempt-history-trend">' + trendForAttempts(attempts) + '</div>' +
+      '<div class="attempt-history-list">' +
+      shown.map((item, index) => {
+        const when = new Date(item.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+        return '<div class="attempt-history-item">' +
+          '<img class="attempt-history-thumb" data-attempt-image="' + index + '" alt="Saved attempt">' +
+          '<div><div class="attempt-history-score mono">' + item.score + '/100 MATCH</div>' +
+          '<div class="attempt-history-date mono">' + when + '</div>' +
+          '<div class="attempt-history-verdict">' + item.verdict + '</div></div>' +
+        '</div>';
+      }).join('') +
+      '</div>';
+    el.querySelectorAll('[data-attempt-image]').forEach((imgEl, index) => {
+      const blob = shown[index] && shown[index].imageBlob;
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      imgEl.src = url;
+      imgEl.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+    });
+  } catch {
+    el.innerHTML = '<div class="attempt-history-head"><div class="attempt-history-title mono">MY ATTEMPTS</div></div><div class="attempt-history-empty">Attempt history is not available in this browser.</div>';
+  }
+}
+
+function attemptBlobFromImage(img, fallbackBlob) {
+  return new Promise((resolve) => {
+    const maxEdge = 1200;
+    const scale = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => resolve(blob || fallbackBlob), 'image/jpeg', 0.82);
+  });
+}
 
 function openRecreateModal(ref) {
   currentModalRef = ref;
@@ -986,11 +1172,16 @@ function openRecreateModal(ref) {
   document.getElementById('attemptResult').innerHTML = '';
   document.getElementById('attemptInput').value = '';
   document.getElementById('recreateModal').classList.add('open');
+  void renderAttemptHistory(ref);
 }
 
 function closeRecreateModal() {
   document.getElementById('recreateModal').classList.remove('open');
   currentModalRef = null;
+  if (currentAttemptPreviewUrl) {
+    URL.revokeObjectURL(currentAttemptPreviewUrl);
+    currentAttemptPreviewUrl = null;
+  }
 }
 
 // Compares a captured attempt against the target photo's actual tonal +
@@ -1038,16 +1229,17 @@ function feedbackFor(captured, ref) {
   else if (d < 1.8) verdict = "Good progress — a few clear differences left.";
   else verdict = "Quite different from the original still — worth another pass.";
 
-  return { verdict, tips, goodMatch: tips.length === 0 };
+  return { verdict, tips, goodMatch: tips.length === 0, distance: d, score: scoreFromDistance(d) };
 }
 
 function renderAttemptFeedback(captured, ref, thumbSrc) {
-  const { verdict, tips } = feedbackFor(captured, ref);
+  const { verdict, tips, score } = feedbackFor(captured, ref);
   const tipsHtml = tips.length
     ? `<ul class="attempt-tips">${tips.map(t => `<li>${t}</li>`).join('')}</ul>`
     : `<div class="attempt-good">No major gaps flagged on the dimensions this tool tracks — nice work.</div>`;
   document.getElementById('attemptResult').innerHTML = `
     <img class="attempt-thumb" src="${thumbSrc}" alt="Your attempt">
+    <div class="attempt-score mono">${score}/100 MATCH</div>
     <div class="attempt-verdict">${verdict}</div>
     ${tipsHtml}
   `;
@@ -1061,11 +1253,42 @@ attemptInput.addEventListener('change', (e) => {
   if (!file || !currentModalRef) return;
   const ref = currentModalRef;
   const img = new Image();
-  img.onload = () => {
+  const sourceUrl = URL.createObjectURL(file);
+  img.onload = async () => {
     const captured = analyzeSource(img, img.naturalWidth, img.naturalHeight);
-    renderAttemptFeedback(captured, ref, img.src);
+    const feedback = feedbackFor(captured, ref);
+    if (currentAttemptPreviewUrl) URL.revokeObjectURL(currentAttemptPreviewUrl);
+    currentAttemptPreviewUrl = sourceUrl;
+    renderAttemptFeedback(captured, ref, sourceUrl);
+    try {
+      const imageBlob = await attemptBlobFromImage(img, file);
+      await saveAttempt({
+        id: Date.now() + '-' + Math.random().toString(36).slice(2, 9),
+        refKey: attemptRefKey(ref),
+        refTitle: ref.title,
+        refByline: ref.byline,
+        createdAt: Date.now(),
+        features: captured,
+        distance: feedback.distance,
+        score: feedback.score,
+        verdict: feedback.verdict,
+        tips: feedback.tips,
+        imageBlob
+      });
+      if (currentModalRef === ref) await renderAttemptHistory(ref);
+    } catch {
+      const history = document.getElementById('attemptHistory');
+      if (history && currentModalRef === ref) {
+        history.innerHTML = '<div class="attempt-history-head"><div class="attempt-history-title mono">MY ATTEMPTS</div></div><div class="attempt-history-empty">This attempt was analysed, but your browser could not save it locally.</div>';
+      }
+    }
+    attemptInput.value = '';
   };
-  img.src = URL.createObjectURL(file);
+  img.onerror = () => {
+    URL.revokeObjectURL(sourceUrl);
+    attemptInput.value = '';
+  };
+  img.src = sourceUrl;
 });
 
 let galleryBuilt = false;
