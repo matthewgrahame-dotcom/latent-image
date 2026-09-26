@@ -1357,7 +1357,9 @@ function showResults(liveFeatures) {
     readingList.appendChild(el);
   });
   document.getElementById('furtherReading').style.display = readingMatches.length ? 'block' : 'none';
-  document.getElementById('results').style.display = 'block';
+  const resultsEl = document.getElementById('results');
+  resultsEl.style.display = 'block';
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 let currentModalRef = null;
