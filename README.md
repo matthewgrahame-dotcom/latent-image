@@ -14,7 +14,7 @@ latent-image/
 │   ├── service-worker.js   offline caching + install support
 │   ├── icon-192.png
 │   ├── icon-512.png
-│   └── images/             26 real archive photographs, pulled out of
+│   └── images/             40 real archive photographs, pulled out of
 │                            the claude.ai artifact so they work as a
 │                            standalone site
 ├── server.js               dependency-free static file server
