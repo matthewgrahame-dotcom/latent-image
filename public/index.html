@@ -570,8 +570,13 @@
   </section>
 
   <section class="gallery-section" id="gallerySection" style="display:none;">
-    <div class="results-label mono">THE FULL ARCHIVE — TAP ANY PLATE</div>
+    <div class="results-label mono">THE PHOTOGRAPH ARCHIVE — TAP ANY PLATE</div>
     <div class="gallery-grid" id="galleryGrid"></div>
+    <div class="further-reading" id="galleryStyleStudies">
+      <div class="results-label mono">STYLE STUDIES — FURTHER READING</div>
+      <p class="further-reading-intro">Important photographs to study for their ideas and technique. These works are referenced rather than reproduced.</p>
+      <div class="reading-list" id="galleryReadingList"></div>
+    </div>
   </section>
 
   <div class="note">
@@ -1421,23 +1426,38 @@ attemptInput.addEventListener('change', (e) => {
 let galleryBuilt = false;
 function buildGallery() {
   const grid = document.getElementById('galleryGrid');
+  const readingList = document.getElementById('galleryReadingList');
   grid.innerHTML = '';
-  ARCHIVE.forEach(ref => {
+  readingList.innerHTML = '';
+
+  // Keep the visual archive honest: only photographs we can reproduce belong
+  // in the plate grid. Copyright-sensitive references live separately below.
+  ARCHIVE.filter(ref => ref.img).forEach(ref => {
     const card = document.createElement('div');
     card.className = 'gallery-card';
-    const plate = ref.img
-      ? `<img class="thumb" src="${ref.img}" alt="${ref.title}">`
-      : `<canvas class="thumb"></canvas>`;
     card.innerHTML = `
-      ${plate}
+      <img class="thumb" src="${ref.img}" alt="${ref.title}">
       <div class="gc-meta">
         <h4>${ref.title}</h4>
         <div class="gc-byline mono">${ref.byline}</div>
       </div>`;
     grid.appendChild(card);
-    if (!ref.img) renderTonal(card.querySelector('canvas.thumb'), ref.f);
     card.addEventListener('click', () => openRecreateModal(ref));
   });
+
+  ARCHIVE.filter(ref => !ref.img).forEach(ref => {
+    const item = document.createElement('div');
+    item.className = 'reading-item';
+    item.innerHTML = `
+      <h3>${ref.title}</h3>
+      <div class="byline mono">${ref.byline.replace(' (style study, no image)', '').replace(', style study, no image', '')}</div>
+      <p>${ref.analysis}</p>
+      ${ref.readingUrl ? `<a class="reading-link" href="${ref.readingUrl}">View photograph →</a>` : ''}`;
+    readingList.appendChild(item);
+  });
+
+  document.getElementById('galleryStyleStudies').style.display =
+    readingList.children.length ? 'block' : 'none';
   galleryBuilt = true;
 }
 
