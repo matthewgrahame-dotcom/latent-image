@@ -987,29 +987,41 @@ function distance(a, b) {
 
 function matchQuality(live, ref, d) {
   const target = { ...ref.f, ...ref.c };
-  const compositionChecks = [
-    Math.abs(live.row - target.row) < 0.17,
-    Math.abs(live.col - target.col) < 0.17,
-    Math.abs(live.symmetry - target.symmetry) < 0.14,
-    Math.abs(live.thirds - target.thirds) < 0.14,
-    Math.abs(live.diagonal - target.diagonal) < 0.22,
-    Math.abs(live.negSpace - target.negSpace) < 0.14
+  const specs = [
+    { key: 'row', tolerance: 0.22, weight: 0.8, composition: true },
+    { key: 'col', tolerance: 0.22, weight: 0.8, composition: true },
+    { key: 'symmetry', tolerance: 0.22, weight: 1.25, composition: true },
+    { key: 'thirds', tolerance: 0.20, weight: 1.25, composition: true },
+    { key: 'diagonal', tolerance: 0.30, weight: 1.05, composition: true },
+    { key: 'negSpace', tolerance: 0.22, weight: 1.05, composition: true },
+    { key: 'brightness', tolerance: 0.18, weight: 0.55, composition: false },
+    { key: 'contrast', tolerance: 0.18, weight: 0.65, composition: false },
+    { key: 'warmth', tolerance: 0.30, weight: 0.45, composition: false }
   ];
-  const tonalChecks = [
-    Math.abs(live.brightness - target.brightness) < 0.10,
-    Math.abs(live.contrast - target.contrast) < 0.12,
-    Math.abs(live.warmth - target.warmth) < 0.16
-  ];
-  const compositionAgreement = compositionChecks.filter(Boolean).length;
-  const totalAgreement = compositionAgreement + tonalChecks.filter(Boolean).length;
 
-  if (d < 0.24 && compositionAgreement >= 3 && totalAgreement >= 5) {
-    return { level: 'strong', label: 'STRONG VISUAL MATCH' };
+  let weightedSimilarity = 0;
+  let totalWeight = 0;
+  let compositionAgreement = 0;
+  let meaningfulAgreement = 0;
+
+  for (const spec of specs) {
+    const diff = Math.abs(live[spec.key] - target[spec.key]);
+    const similarity = Math.max(0, 1 - diff / spec.tolerance);
+    weightedSimilarity += similarity * spec.weight;
+    totalWeight += spec.weight;
+    if (similarity >= 0.45) meaningfulAgreement++;
+    if (spec.composition && similarity >= 0.45) compositionAgreement++;
   }
-  if (d < 0.48 && compositionAgreement >= 2 && totalAgreement >= 4) {
-    return { level: 'good', label: 'RELATED VISUAL STRUCTURE' };
+
+  const score = Math.round((weightedSimilarity / totalWeight) * 100);
+
+  if (score >= 74 && compositionAgreement >= 4 && meaningfulAgreement >= 6 && d < 0.34) {
+    return { level: 'strong', label: 'STRONG VISUAL MATCH', score };
   }
-  return { level: 'explore', label: 'WORTH EXPLORING' };
+  if (score >= 56 && compositionAgreement >= 3 && meaningfulAgreement >= 5 && d < 0.58) {
+    return { level: 'good', label: 'RELATED VISUAL STRUCTURE', score };
+  }
+  return { level: 'explore', label: 'NO RELIABLE MATCH', score };
 }
 
 function reasonFor(live, ref) {
@@ -1193,46 +1205,60 @@ function showResults(liveFeatures) {
       const d = distance(liveFeatures, { ...ref.f, ...ref.c });
       return { ref, d, quality: matchQuality(liveFeatures, ref, d) };
     })
-    .sort((a,b) => a.d - b.d);
+    .sort((a,b) => b.quality.score - a.quality.score || a.d - b.d);
 
-  // Primary comparisons must be photographs we can actually reproduce.
-  // We still allow surprising cross-subject matches, but weak numerical
-  // neighbours are labelled honestly instead of being oversold.
-  const visibleMatches = ranked.filter(item => item.ref.img).slice(0, 3);
-  const readingMatches = ranked.filter(item => !item.ref.img).slice(0, 3);
+  // Do not manufacture a match. A photograph only reaches the primary result
+  // list if it clears the calibrated "related" threshold.
+  const visibleMatches = ranked
+    .filter(item => item.ref.img && item.quality.level !== 'explore')
+    .slice(0, 3);
+  const readingMatches = ranked
+    .filter(item => !item.ref.img && item.quality.level !== 'explore')
+    .slice(0, 3);
 
-  const bestQuality = visibleMatches[0]?.quality.level || 'explore';
   const label = document.getElementById('resultsLabel');
-  if (label) {
-    label.textContent = bestQuality === 'strong'
-      ? 'STRONG VISUAL MATCHES'
-      : bestQuality === 'good'
-        ? 'RELATED VISUAL IDEAS'
-        : 'NO STRONG MATCH — WORTH EXPLORING';
-  }
-
   const strip = document.getElementById('strip');
   strip.innerHTML = '';
-  visibleMatches.forEach((r) => {
-    const el = document.createElement('div');
-    el.className = 'frame';
-    el.innerHTML = `
-      <img class="tonal" src="${r.ref.img}" alt="${r.ref.title}">
-      <div class="meta">
-        <div class="kicker mono">${r.quality.label} · ${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')}</div>
-        <h3>${r.ref.title}</h3>
-        <div class="byline mono">${r.ref.byline}</div>
-        <p class="desc">${r.ref.desc}</p>
-        <p class="analysis">${r.ref.analysis}</p>
-        <div class="photo-actions">
-          <button class="recreate-btn recreate-guide-btn" type="button">Recreate this look</button>
-          <button class="recreate-btn capture-btn" type="button">Capture your attempt</button>
+
+  if (!visibleMatches.length) {
+    if (label) label.textContent = 'NO RELIABLE VISUAL MATCH';
+    strip.innerHTML = `
+      <div class="frame" style="display:block; opacity:1; transform:none;">
+        <div class="meta">
+          <h3>No convincing reference this time.</h3>
+          <p class="desc">The frame does not line up strongly enough with the archive across composition, focal position and tone.</p>
+          <p class="analysis">That is useful information too. Try reframing around a clearer line, shape, pool of light, repeated structure or area of negative space, then develop again.</p>
         </div>
       </div>`;
-    strip.appendChild(el);
-    el.querySelector('.recreate-guide-btn').addEventListener('click', () => openRecreateModal(r.ref));
-    el.querySelector('.capture-btn').addEventListener('click', () => captureAttemptFor(r.ref));
-  });
+  } else {
+    const bestQuality = visibleMatches[0].quality.level;
+    if (label) {
+      label.textContent = bestQuality === 'strong'
+        ? 'STRONG VISUAL MATCHES'
+        : 'RELATED VISUAL IDEAS';
+    }
+
+    visibleMatches.forEach((r) => {
+      const el = document.createElement('div');
+      el.className = 'frame';
+      el.innerHTML = `
+        <img class="tonal" src="${r.ref.img}" alt="${r.ref.title}">
+        <div class="meta">
+          <div class="kicker mono">${r.quality.label} · ${r.quality.score}/100 · ${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')}</div>
+          <h3>${r.ref.title}</h3>
+          <div class="byline mono">${r.ref.byline}</div>
+          <p class="desc">${r.ref.desc}</p>
+          <p class="analysis">${r.ref.analysis}</p>
+          <div class="photo-actions">
+            <button class="recreate-btn recreate-guide-btn" type="button">Recreate this look</button>
+            <button class="recreate-btn capture-btn" type="button">Capture your attempt</button>
+          </div>
+        </div>`;
+      strip.appendChild(el);
+      el.querySelector('.recreate-guide-btn').addEventListener('click', () => openRecreateModal(r.ref));
+      el.querySelector('.capture-btn').addEventListener('click', () => captureAttemptFor(r.ref));
+    });
+  }
 
   const readingList = document.getElementById('readingList');
   readingList.innerHTML = '';
@@ -1242,7 +1268,7 @@ function showResults(liveFeatures) {
     el.innerHTML = `
       <h3>${r.ref.title}</h3>
       <div class="byline mono">${r.ref.byline}</div>
-      <p>${r.quality.label}. ${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')} ${r.ref.analysis}</p>
+      <p>${r.quality.label} · ${r.quality.score}/100. ${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')} ${r.ref.analysis}</p>
       ${r.ref.readingUrl ? `<a class="reading-link" href="${r.ref.readingUrl}">View photograph →</a>` : ''}`;
     readingList.appendChild(el);
   });
@@ -1306,15 +1332,21 @@ async function attemptsForRef(ref) {
 }
 
 function scoreFromDistance(d) {
+  // Retained only for backwards compatibility with previously saved attempts.
   return Math.max(0, Math.min(100, Math.round(100 - d * 35)));
 }
 
 function trendForAttempts(attempts) {
-  if (attempts.length < 2) return 'First saved attempt — this is your baseline.';
-  const latest = attempts[0];
-  const previous = attempts[1];
+  const calibrated = attempts.filter(item => item.scoreVersion === 2);
+  if (calibrated.length < 2) {
+    return calibrated.length === 1
+      ? 'First calibrated attempt — this is your new baseline.'
+      : 'Older attempts used the previous scoring model and are not included in the trend.';
+  }
+  const latest = calibrated[0];
+  const previous = calibrated[1];
   const delta = latest.score - previous.score;
-  const bestBefore = Math.max(...attempts.slice(1).map(item => item.score));
+  const bestBefore = Math.max(...calibrated.slice(1).map(item => item.score));
   if (latest.score > bestBefore) return 'Best yet — your latest attempt is the closest so far.';
   if (delta >= 3) return 'Getting closer — up ' + delta + ' match points from your previous attempt.';
   if (delta <= -3) return 'A little further away this time — down ' + Math.abs(delta) + ' match points.';
@@ -1340,7 +1372,7 @@ async function renderAttemptHistory(ref) {
         const when = new Date(item.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
         return '<div class="attempt-history-item">' +
           '<img class="attempt-history-thumb" data-attempt-image="' + index + '" alt="Saved attempt">' +
-          '<div><div class="attempt-history-score mono">' + item.score + '/100 MATCH</div>' +
+          '<div><div class="attempt-history-score mono">' + (item.scoreVersion === 2 ? item.score + '/100 MATCH' : 'LEGACY ATTEMPT') + '</div>' +
           '<div class="attempt-history-date mono">' + when + '</div>' +
           '<div class="attempt-history-verdict">' + item.verdict + '</div></div>' +
         '</div>';
@@ -1451,7 +1483,7 @@ function feedbackFor(captured, ref) {
   else if (quality.level === 'good') verdict = "Good progress — the structure relates, with a few clear differences left.";
   else verdict = "Quite different from the original still — worth another pass.";
 
-  return { verdict, tips, goodMatch: tips.length === 0, distance: d, score: scoreFromDistance(d) };
+  return { verdict, tips, goodMatch: tips.length === 0, distance: d, score: quality.score };
 }
 
 function renderAttemptFeedback(captured, ref, thumbSrc) {
@@ -1493,6 +1525,7 @@ attemptInput.addEventListener('change', (e) => {
         features: captured,
         distance: feedback.distance,
         score: feedback.score,
+        scoreVersion: 2,
         verdict: feedback.verdict,
         tips: feedback.tips,
         imageBlob
