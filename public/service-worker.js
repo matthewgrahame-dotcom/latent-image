@@ -2,7 +2,7 @@
 // Caches the app shell and all archive images on install, so the app works
 // offline after the first load and installs cleanly as a PWA. Bump CACHE_NAME
 // whenever index.html or the image set changes, to force a refresh.
-const CACHE_NAME = 'latent-image-v8';
+const CACHE_NAME = 'latent-image-v9';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
