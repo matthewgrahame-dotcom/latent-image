@@ -577,7 +577,7 @@
   </div>
 
   <section class="results" id="results" style="display:none;">
-    <div class="results-label mono">WORTH LOOKING AT BEFORE YOU SHOOT</div>
+    <div class="results-label mono" id="resultsLabel">WORTH LOOKING AT BEFORE YOU SHOOT</div>
     <div class="strip" id="strip"></div>
     <div class="further-reading" id="furtherReading">
       <div class="results-label mono">FURTHER READING</div>
@@ -964,6 +964,33 @@ function distance(a, b) {
   return d;
 }
 
+function matchQuality(live, ref, d) {
+  const target = { ...ref.f, ...ref.c };
+  const compositionChecks = [
+    Math.abs(live.row - target.row) < 0.17,
+    Math.abs(live.col - target.col) < 0.17,
+    Math.abs(live.symmetry - target.symmetry) < 0.14,
+    Math.abs(live.thirds - target.thirds) < 0.14,
+    Math.abs(live.diagonal - target.diagonal) < 0.22,
+    Math.abs(live.negSpace - target.negSpace) < 0.14
+  ];
+  const tonalChecks = [
+    Math.abs(live.brightness - target.brightness) < 0.10,
+    Math.abs(live.contrast - target.contrast) < 0.12,
+    Math.abs(live.warmth - target.warmth) < 0.16
+  ];
+  const compositionAgreement = compositionChecks.filter(Boolean).length;
+  const totalAgreement = compositionAgreement + tonalChecks.filter(Boolean).length;
+
+  if (d < 0.24 && compositionAgreement >= 3 && totalAgreement >= 5) {
+    return { level: 'strong', label: 'STRONG VISUAL MATCH' };
+  }
+  if (d < 0.48 && compositionAgreement >= 2 && totalAgreement >= 4) {
+    return { level: 'good', label: 'RELATED VISUAL STRUCTURE' };
+  }
+  return { level: 'explore', label: 'WORTH EXPLORING' };
+}
+
 function reasonFor(live, ref) {
   const bits = [];
   // Compositional checks first — these are what the match is now mostly about.
@@ -1141,14 +1168,27 @@ function renderTonal(canvas, f) {
 
 function showResults(liveFeatures) {
   const ranked = ARCHIVE
-    .map(ref => ({ ref, d: distance(liveFeatures, { ...ref.f, ...ref.c }) }))
+    .map(ref => {
+      const d = distance(liveFeatures, { ...ref.f, ...ref.c });
+      return { ref, d, quality: matchQuality(liveFeatures, ref, d) };
+    })
     .sort((a,b) => a.d - b.d);
 
   // Primary comparisons must be photographs we can actually reproduce.
+  // We still allow surprising cross-subject matches, but weak numerical
+  // neighbours are labelled honestly instead of being oversold.
   const visibleMatches = ranked.filter(item => item.ref.img).slice(0, 3);
-  // Copyright-sensitive/no-image references remain useful context, but never
-  // displace a viewable example in the main comparison.
   const readingMatches = ranked.filter(item => !item.ref.img).slice(0, 3);
+
+  const bestQuality = visibleMatches[0]?.quality.level || 'explore';
+  const label = document.getElementById('resultsLabel');
+  if (label) {
+    label.textContent = bestQuality === 'strong'
+      ? 'STRONG VISUAL MATCHES'
+      : bestQuality === 'good'
+        ? 'RELATED VISUAL IDEAS'
+        : 'NO STRONG MATCH — WORTH EXPLORING';
+  }
 
   const strip = document.getElementById('strip');
   strip.innerHTML = '';
@@ -1158,7 +1198,7 @@ function showResults(liveFeatures) {
     el.innerHTML = `
       <img class="tonal" src="${r.ref.img}" alt="${r.ref.title}">
       <div class="meta">
-        <div class="kicker mono">${reasonFor(liveFeatures, r.ref)}</div>
+        <div class="kicker mono">${r.quality.label} · ${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')}</div>
         <h3>${r.ref.title}</h3>
         <div class="byline mono">${r.ref.byline}</div>
         <p class="desc">${r.ref.desc}</p>
@@ -1177,7 +1217,7 @@ function showResults(liveFeatures) {
     el.innerHTML = `
       <h3>${r.ref.title}</h3>
       <div class="byline mono">${r.ref.byline}</div>
-      <p>${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')} ${r.ref.analysis}</p>
+      <p>${r.quality.label}. ${reasonFor(liveFeatures, r.ref).replace('WHY THIS ONE — ', '')} ${r.ref.analysis}</p>
       ${r.ref.readingUrl ? `<a class="reading-link" href="${r.ref.readingUrl}">View photograph →</a>` : ''}`;
     readingList.appendChild(el);
   });
@@ -1373,9 +1413,10 @@ function feedbackFor(captured, ref) {
 
   const tips = scored.slice(0, 3).map(c => c.diff < 0 ? c.low : c.high);
 
+  const quality = matchQuality(captured, ref, d);
   let verdict;
-  if (d < 0.6) verdict = "Close match — this genuinely reads like the original.";
-  else if (d < 1.8) verdict = "Good progress — a few clear differences left.";
+  if (quality.level === 'strong') verdict = "Close match — several important visual dimensions genuinely line up.";
+  else if (quality.level === 'good') verdict = "Good progress — the structure relates, with a few clear differences left.";
   else verdict = "Quite different from the original still — worth another pass.";
 
   return { verdict, tips, goodMatch: tips.length === 0, distance: d, score: scoreFromDistance(d) };
