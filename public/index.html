@@ -208,6 +208,23 @@
     border-bottom: 1px solid var(--ink);
   }
   .reading-link:hover { color: var(--safelight); border-color: var(--safelight); }
+  .gallery-style-studies .reading-list {
+    display: block;
+  }
+  .gallery-style-studies .reading-item {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    margin: 0 0 1rem;
+    padding: 0.15rem 0 0.15rem 0.8rem;
+    border: 0;
+    border-left: 2px solid var(--line);
+    background: transparent;
+  }
+  .gallery-style-studies .reading-item::before,
+  .gallery-style-studies .reading-item::after {
+    content: none;
+  }
   .frame {
     display: grid;
     grid-template-columns: 118px 1fr;
@@ -572,7 +589,7 @@
   <section class="gallery-section" id="gallerySection" style="display:none;">
     <div class="results-label mono">THE PHOTOGRAPH ARCHIVE — TAP ANY PLATE</div>
     <div class="gallery-grid" id="galleryGrid"></div>
-    <div class="further-reading" id="galleryStyleStudies">
+    <div class="further-reading gallery-style-studies" id="galleryStyleStudies">
       <div class="results-label mono">STYLE STUDIES — FURTHER READING</div>
       <p class="further-reading-intro">Important photographs to study for their ideas and technique. These works are referenced rather than reproduced.</p>
       <div class="reading-list" id="galleryReadingList"></div>
