@@ -1,0 +1,13 @@
+{
+  "name": "latent-image",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Point a camera at a scene, discover historic photographs with similar composition, and how to recreate the look.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

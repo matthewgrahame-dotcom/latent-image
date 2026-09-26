@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Latent Image</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-1: #f7f6f3;
+    --ink: #111110;
+    --ink-dim: #64615c;
+    --line: #111110;
+    --line-soft: #d8d5cd;
+    --safelight: #b23a15;
+    --safelight-bright: #8c2c0f;
+    font-size: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
+    min-height: 100%;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mono { font-family: 'Space Mono', ui-monospace, monospace; }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2.2rem 1.4rem 4rem;
+  }
+
+  header {
+    text-align: left;
+    margin-bottom: 1.6rem;
+    border-bottom: 2px solid var(--line);
+    padding-bottom: 1.2rem;
+  }
+  header h1 {
+    font-weight: 500;
+    font-size: 2.1rem;
+    margin: 0 0 0.35rem;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+  }
+  header p {
+    margin: 0;
+    color: var(--ink-dim);
+    font-size: 0.98rem;
+    max-width: 46ch;
+    line-height: 1.5;
+  }
+
+  .viewfinder-block {
+    margin: 1.8rem 0 1.4rem;
+  }
+  .mount {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    padding: 0.6rem;
+  }
+  .screen {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: #000;
+    overflow: hidden;
+  }
+  .screen video, .screen canvas.preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .screen canvas.preview { display: none; }
+  .screen .hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5rem;
+    color: #a8a8a4;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .flash {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .flash.go { animation: flashpop 420ms ease-out; }
+  @keyframes flashpop {
+    0% { opacity: 0.85; }
+    100% { opacity: 0; }
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 0.9rem;
+    flex-wrap: wrap;
+  }
+  button, .filebtn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    background: var(--ink);
+    color: var(--bg);
+    border: 1px solid var(--ink);
+    border-radius: 0;
+    padding: 0.7rem 1.3rem;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease, transform 100ms ease;
+  }
+  button:hover, .filebtn:hover { background: var(--safelight); border-color: var(--safelight); color: #fff; }
+  button:active, .filebtn:active { transform: scale(0.97); }
+  button:disabled { background: var(--bg); color: var(--line-soft); border-color: var(--line-soft); cursor: not-allowed; }
+  .filebtn { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .filebtn:hover { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+  input[type=file] { display: none; }
+  .status {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--ink-dim);
+  }
+
+  section.results {
+    margin-top: 2.2rem;
+  }
+  .results-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--ink);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .strip {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+  .frame {
+    display: grid;
+    grid-template-columns: 118px 1fr;
+    gap: 1rem;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 0.9rem;
+    align-items: center;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: rise 480ms ease forwards;
+  }
+  .frame:nth-child(2) { animation-delay: 90ms; }
+  .frame:nth-child(3) { animation-delay: 180ms; }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+  .frame .tonal {
+    width: 100%;
+    aspect-ratio: 4/3;
+    display: block;
+    object-fit: cover;
+    background: #000;
+    border: 1px solid var(--line);
+  }
+  .frame .meta .kicker {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--safelight);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+  .frame .meta h3 {
+    margin: 0 0 0.15rem;
+    font-weight: 500;
+    font-size: 1.15rem;
+    font-style: italic;
+    color: var(--ink);
+  }
+  .frame .meta .byline {
+    font-size: 0.88rem;
+    color: var(--ink-dim);
+    margin-bottom: 0.5rem;
+  }
+  .frame .meta p.desc {
+    margin: 0 0 0.55rem;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: var(--ink-dim);
+  }
+  .frame .meta p.analysis {
+    margin: 0;
+    font-size: 0.94rem;
+    line-height: 1.55;
+    color: var(--ink);
+    border-left: 2px solid var(--safelight);
+    padding-left: 0.7rem;
+  }
+
+  .recreate-btn {
+    margin-top: 0.7rem;
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 0.45rem 0.85rem;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  }
+  .recreate-btn:hover { background: var(--safelight); border-color: var(--safelight); color: #fff; }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 16, 0.75);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2.2rem 1.2rem;
+    padding-top: calc(2.2rem + env(safe-area-inset-top, 0px));
+    overflow-y: auto;
+    z-index: 50;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    max-width: 520px;
+    width: 100%;
+    padding: 1.6rem;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: var(--ink-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+  }
+  .modal-close:hover { color: var(--safelight); }
+  .modal-kicker {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--safelight);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .modal-card h3 {
+    margin: 0 0 0.1rem;
+    font-size: 1.3rem;
+    font-weight: 500;
+    font-style: italic;
+    color: var(--ink);
+  }
+  .modal-byline {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ink-dim);
+    margin-bottom: 1.2rem;
+  }
+  .recreate-row {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 0.9rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  .recreate-row:first-of-type { border-top: none; }
+  .recreate-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--safelight);
+    letter-spacing: 0.03em;
+    padding-top: 0.1rem;
+  }
+  .recreate-value {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .modal-footnote {
+    margin-top: 1.2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line-soft);
+    font-size: 0.78rem;
+    color: var(--ink-dim);
+    line-height: 1.5;
+  }
+
+  .gallery-section { margin-top: 2.2rem; }
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.7rem;
+  }
+  .gallery-card {
+    border: 1px solid var(--line);
+    cursor: pointer;
+    background: var(--bg);
+    transition: background 120ms ease;
+  }
+  .gallery-card:hover { background: var(--bg-1); }
+  .gallery-card .thumb {
+    width: 100%;
+    aspect-ratio: 4/3;
+    display: block;
+    object-fit: cover;
+    background: #000;
+    border-bottom: 1px solid var(--line);
+  }
+  .gallery-card .gc-meta { padding: 0.55rem 0.6rem 0.7rem; }
+  .gallery-card h4 {
+    margin: 0 0 0.15rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    font-style: italic;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .gallery-card .gc-byline {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--ink-dim);
+    letter-spacing: 0.01em;
+    line-height: 1.4;
+  }
+  @media (max-width: 560px) {
+    .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .note {
+    margin-top: 2.4rem;
+    padding-top: 1.2rem;
+    border-top: 2px solid var(--line);
+    font-size: 0.82rem;
+    color: var(--ink-dim);
+    line-height: 1.6;
+  }
+  @media (max-width: 480px) {
+    .frame { grid-template-columns: 90px 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Latent Image</h1>
+    <p>Point the camera at what you're about to shoot. Develop the frame to pull up photographs with similar light or structure — and what actually makes each one work, so you can borrow the thinking, not just the look.</p>
+  </header>
+
+  <div class="viewfinder-block">
+    <div class="mount">
+      <div class="screen" id="screen">
+        <video id="video" autoplay playsinline muted></video>
+        <div class="flash" id="flash"></div>
+        <div class="hint" id="hint">requesting camera&hellip;</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="developBtn" disabled>Develop</button>
+      <label class="filebtn" for="fileInput">Use a photo instead</label>
+      <input type="file" id="fileInput" accept="image/*">
+      <button class="filebtn" id="galleryBtn" type="button">View gallery</button>
+      <span class="status" id="status"></span>
+    </div>
+  </div>
+
+  <section class="results" id="results" style="display:none;">
+    <div class="results-label mono">WORTH LOOKING AT BEFORE YOU SHOOT</div>
+    <div class="strip" id="strip"></div>
+  </section>
+
+  <section class="gallery-section" id="gallerySection" style="display:none;">
+    <div class="results-label mono">THE FULL ARCHIVE — TAP ANY PLATE</div>
+    <div class="gallery-grid" id="galleryGrid"></div>
+  </section>
+
+  <div class="note">
+    A quick prototype, not a finished archive. The match itself is loose — simple tonal features (brightness, contrast, warmth, where the eye lands) computed live in your browser, not real subject recognition — because the point isn't precision, it's surfacing a relevant example and the thinking behind it while you're still composing. The plates below are stylised tonal studies standing in for the real photographs (credited honestly by title, photographer, year) until real archival images are wired in. Nothing you capture leaves this page.
+  </div>
+</div>
+
+<div class="modal-overlay" id="recreateModal">
+  <div class="modal-card">
+    <button class="modal-close" id="modalClose">close ✕</button>
+    <div class="modal-kicker mono">RECREATE THIS LOOK</div>
+    <h3 id="modalTitle"></h3>
+    <div class="modal-byline mono" id="modalByline"></div>
+    <div id="modalRows"></div>
+    <div class="modal-footnote">General technique, not device-specific settings — works with any phone or camera. Read "expose for X" as tap-to-expose on X, and "deep focus" vs "shallow" as your camera's normal vs portrait mode.</div>
+  </div>
+</div>
+
+<script>
+// ---- Curated reference set -------------------------------------------------
+// features: brightness 0-1, contrast 0-1, warmth -1..1 (0 = neutral/B&W), focalRow/focalCol 0-1
+const ARCHIVE = [
+  { title: "Migrant Mother", byline: "Dorothea Lange, 1936", desc: "A mother's furrowed gaze, two children turned into her shoulder, Nipomo, California.",
+    analysis: "The hand at the jaw and the children's turned-away faces do the storytelling — nobody looks at the camera, so nothing feels performed. Try letting a hand or gesture carry the emotion instead of the eyes.",
+    img: "images/bd7a145a94bfd8e464f21ee3a281c352.jpg",
+    recreate: { light: "Overcast day or open shade — soft, directionless light with no hard shadows.", focus: "Sharp, tack-focused on the eyes. No softness; this is documentary, not painterly.", exposure: "Meter for the face and let the background go a stop or two darker.", post: "Convert to B&W with a steep midtone contrast curve, light grain, no vignette." },
+    c: { symmetry: 0.2, thirds: 0.75, diagonal: 0.2, negSpace: 0.15 },
+    f: { brightness: 0.42, contrast: 0.78, warmth: 0.0, row: 0.35, col: 0.4 } },
+  { title: "Migrant Family, Nipomo (series frame)", byline: "Dorothea Lange, 1936", desc: "The same family, an earlier frame — gathered inside the mouth of their tent, belongings around them.",
+    analysis: "The tent's open flap forms a triangular frame-within-a-frame around the family, blocking out the empty field behind them entirely. A doorway, window, or any gap in a structure can do the cropping for you before you even touch the edges of the shot.",
+    img: "images/48a592584a3eef04c530bbe672777cb3.png",
+    recreate: { light: "Shoot from inside a doorway or opening towards brighter light outside.", focus: "Keep everything sharp front to back — deep focus, not a shallow portrait blur.", exposure: "Expose for the mid-tones inside; let the bright opening blow out slightly — that's what makes it read as a frame.", post: "B&W, moderate contrast, keep the frame-edges dark to hold the eye inside them." },
+    c: { symmetry: 0.5, thirds: 0.6, diagonal: 0.1, negSpace: 0.4 },
+    f: { brightness: 0.72, contrast: 0.4, warmth: 0.0, row: 0.55, col: 0.6 } },
+  { title: "Two Boys on a Stoop, Kensington, Philadelphia", byline: "John Frank Keith, ca. 1925", desc: "Two boys in matching flat caps sit on a stoop in nearly identical poses, flanking a centred doorway.",
+    analysis: "Matching caps, mirrored poses, hands crossed the same way — two similar figures posed almost identically turn a simple street portrait into a study in visual rhyme. With two subjects, matching pose or gesture between them creates a rhythm a single figure alone can't.",
+    img: "images/85f02e4f1f7c564a9411f8db12bb9a15.jpg",
+    recreate: { light: "Even outdoor daylight, ideally shaded (a porch or doorway) to avoid harsh shadow.", focus: "Sharp on both faces, camera level and centred.", exposure: "Standard — watch bright shirts don't blow out against a dark doorway.", post: "B&W, moderate contrast, keep background texture (brick, wood) visible rather than crushed." },
+    c: { symmetry: 0.75, thirds: 0.25, diagonal: 0.05, negSpace: 0.35 },
+    f: { brightness: 0.5, contrast: 0.6, warmth: 0.05, row: 0.3, col: 0.5 } },
+  { title: "Portrait of Kenji Kano", byline: "Photographer unknown, pre-1940", desc: "A direct, level studio portrait against a plain mottled backdrop.",
+    analysis: "There's nothing in the frame to compete with the face — no pattern, no prop, no background detail — so a level, direct gaze becomes the whole subject. A flat, low-texture backdrop is the cheapest way to force all the attention onto expression.",
+    img: "images/e3004547c841b2f9bbf1da7f2f486240.jpg",
+    recreate: { light: "Even, diffused light — a bright window with a sheet over it works well.", focus: "Sharp on the eyes, dead level camera angle.", exposure: "Balanced, no strong shadow side — avoid single hard directional light.", post: "B&W, gentle contrast, optional light sepia toning." },
+    c: { symmetry: 0.75, thirds: 0.3, diagonal: 0.0, negSpace: 0.35 },
+    f: { brightness: 0.56, contrast: 0.48, warmth: 0.0, row: 0.32, col: 0.5 } },
+  { title: "The Steerage", byline: "Alfred Stieglitz, 1907", desc: "A ship's lower deck cut into geometric planes — gangway, funnel, straw hats below.",
+    analysis: "A gangway and a funnel form a hard diagonal and a vertical that slice the frame into shapes before you even register the people. Look for a structure in the scene — a rail, a beam, a stairwell — that can do the composing for you.",
+    img: "images/2d9e0954861341a60c417192d32df878.jpg",
+    recreate: { light: "Harsh midday sun for strong, defined shadow shapes.", focus: "Deep focus — everything from foreground to background sharp.", exposure: "Expose for the brightest structural highlights, let shadow areas go dark.", post: "B&W, high contrast, crop to emphasise the diagonal and vertical lines you found." },
+    c: { symmetry: 0.15, thirds: 0.55, diagonal: 0.6, negSpace: 0.15 },
+    f: { brightness: 0.55, contrast: 0.72, warmth: 0.0, row: 0.5, col: 0.5 } },
+  { title: "Afghan Girl", byline: "Steve McCurry, 1984", desc: "Green eyes against a worn red shawl, a refugee camp near Peshawar.",
+    analysis: "One colour (that red) fills almost the whole frame and pushes everything towards the eyes, the only cool, sharp thing in it. A single dominant colour with one point of contrast reads as a portrait even at a glance.",
+    recreate: { light: "Soft, even light on the face — open shade or overcast.", focus: "Shallow depth of field if your phone supports it (portrait mode); sharp eyes, blurred background.", exposure: "Expose for skin tones, let a strongly coloured background stay saturated.", post: "Boost background saturation, keep skin natural — avoid over-processing the face." },
+    c: { symmetry: 0.4, thirds: 0.75, diagonal: 0.1, negSpace: 0.15 },
+    f: { brightness: 0.6, contrast: 0.55, warmth: 0.55, row: 0.3, col: 0.5 } },
+  { title: "Behind the Gare Saint-Lazare", byline: "Henri Cartier-Bresson, 1932", desc: "A figure mid-leap over a flooded rail yard, doubled in the water below.",
+    analysis: "Cartier-Bresson pre-framed the scene — the fence, the ladder, the reflection — and waited for a subject to complete it. The 'decisive moment' is really decisive framing plus patience for the moment to arrive.",
+    recreate: { light: "Any even daylight — this technique doesn't depend on lighting.", focus: "Lock focus and exposure on an empty spot first (tap and hold), then wait for something to move into it.", exposure: "Standard daylight exposure, locked before the moment happens.", post: "B&W, keep it a little rough — don't oversharpen a genuinely candid frame." },
+    c: { symmetry: 0.15, thirds: 0.5, diagonal: 0.55, negSpace: 0.4 },
+    f: { brightness: 0.48, contrast: 0.7, warmth: 0.0, row: 0.65, col: 0.45 } },
+  { title: "Dust Storm, Cimarron County", byline: "Arthur Rothstein, 1936", desc: "A farmer and his sons walk into a wall of dust, Oklahoma.",
+    analysis: "The horizon almost disappears into the storm, so there's nowhere for the eye to rest except the figures — scale and isolation do the emotional work. Removing a horizon line can make a small subject feel much more exposed.",
+    recreate: { light: "Hazy, low-contrast light — fog, dust, or heavy overcast reduces background detail naturally.", focus: "Sharp on the foreground figures only.", exposure: "Expose for the figures; let the background wash out towards flat grey or white.", post: "B&W, reduce clarity/dehaze in the background to push the haze effect further." },
+    c: { symmetry: 0.3, thirds: 0.6, diagonal: 0.15, negSpace: 0.7 },
+    f: { brightness: 0.5, contrast: 0.6, warmth: 0.1, row: 0.6, col: 0.5 } },
+  { title: "Lunch Atop a Skyscraper", byline: "Charles C. Ebbets (attrib.), 1932", desc: "Eleven ironworkers on a beam, 850 feet above Manhattan, no harnesses.",
+    analysis: "A single horizontal beam runs almost the full width of the frame with nothing below it — the missing ground is the composition. Cropping out the reference points that would explain the scene can make it more arresting, not less.",
+    recreate: { light: "Bright, clear daylight with strong side light on the subjects.", focus: "Deep focus, everything sharp.", exposure: "Slight negative exposure compensation to hold detail in a bright sky.", post: "This is mainly a framing exercise — crop out ground/context reference points entirely." },
+    c: { symmetry: 0.55, thirds: 0.45, diagonal: 0.1, negSpace: 0.65 },
+    f: { brightness: 0.62, contrast: 0.68, warmth: 0.0, row: 0.45, col: 0.5 } },
+  { title: "V-J Day in Times Square", byline: "Alfred Eisenstaedt, 1945", desc: "A sailor and a stranger, a kiss in a crowd celebrating the war's end.",
+    analysis: "Two figures lean into a strong diagonal while a loose, out-of-focus crowd fills the rest — one sharp gesture against a blurred context. Look for the one clean shape a busy scene is hiding.",
+    recreate: { light: "Available daylight in a crowd — no special setup possible or needed.", focus: "Sharp on your two subjects; let a moving crowd blur naturally around them.", exposure: "A moderate shutter speed (not too fast) lets peripheral motion soften on its own.", post: "B&W, moderate contrast, slight grain to keep the 'caught in the moment' feel." },
+    c: { symmetry: 0.2, thirds: 0.5, diagonal: 0.6, negSpace: 0.2 },
+    f: { brightness: 0.58, contrast: 0.5, warmth: 0.0, row: 0.42, col: 0.5 } },
+  { title: "The Tetons and the Snake River", byline: "Ansel Adams, 1942", desc: "A river bends towards jagged peaks under a churning sky, Wyoming.",
+    analysis: "The river's S-curve leads the eye from the bottom edge all the way to the peaks — a leading line doing the work an arrow would otherwise have to. Look for any curve or path in a landscape and put it at the base of the frame.",
+    recreate: { light: "Strong directional afternoon light with dramatic cloud cover.", focus: "Deep focus front to back — landscape/auto mode, not portrait blur.", exposure: "Use your phone's HDR mode to hold detail in both bright sky and dark land.", post: "B&W, strong contrast curve, darken the sky selectively, boost cloud and mountain detail." },
+    c: { symmetry: 0.6, thirds: 0.55, diagonal: 0.35, negSpace: 0.5 },
+    f: { brightness: 0.5, contrast: 0.85, warmth: -0.05, row: 0.55, col: 0.5 } },
+  { title: "Road through the Wilds of New Jersey", byline: "James Bartlett Rich, 1927", desc: "A dirt road narrows to a single point on the horizon beneath a looming storm cloud, Pemberton to Barnegat, New Jersey.",
+    analysis: "The road's vanishing point lines up almost exactly with the storm cloud above it — when a leading line and a focal element share the same axis, the eye travels the entire depth of the frame in one uninterrupted line. Look for a straight path receding into a scene, then find or wait for something to sit right at its vanishing point.",
+    img: "images/8b41e6f012e142113a3e8590faa9956e.jpg",
+    recreate: { light: "Hazy, overcast, or stormy light — it flattens the sky and makes a pale road read brightly against darker fields.", focus: "Keep the road and vanishing point sharp; soft foreground edges are fine.", exposure: "Meter for the mid-tone fields; let the hazy sky run bright.", post: "B&W, moderate rather than punchy contrast, to preserve the atmospheric haze." },
+    c: { symmetry: 0.55, thirds: 0.35, diagonal: 0.15, negSpace: 0.55 },
+    f: { brightness: 0.6, contrast: 0.45, warmth: 0.0, row: 0.35, col: 0.52 } },
+  { title: "Boulder Dam, 1941", byline: "Ansel Adams, National Park Service Mural Project (79-AAB-8)", desc: "Looking toward transmission lines on mountains, clouded sky \u2014 Adams' own caption for the print. Lines slice diagonally into the frame, converging on a tower atop a dark mountain silhouette.",
+    analysis: "Sharp diagonal power lines cut across an otherwise entirely organic scene of mountain and cloud — one piece of rigid, human-made geometry anchors what would otherwise be a fairly shapeless sky-and-land composition. A single hard straight line, or a few converging ones, can give an amorphous natural scene something concrete to organise around.",
+    img: "images/f0f58e5db6b0b4053d73e5eb43d6a388.jpg",
+    recreate: { light: "Bright daylight with strong cumulus cloud, ideally side-lit for dimension in the clouds.", focus: "Deep focus front to back, including any foreground lines.", exposure: "Expose for the clouds; let a mountain silhouette fall to near-black on its own.", post: "B&W, strong contrast, deepen the silhouette to near-pure black, keep cloud texture visible without blowing it out." },
+    c: { symmetry: 0.25, thirds: 0.55, diagonal: 0.65, negSpace: 0.55 },
+    f: { brightness: 0.62, contrast: 0.7, warmth: 0.0, row: 0.3, col: 0.35 } },
+  { title: "The Grand Canyon", byline: "Ansel Adams, National Park Service Mural Project, c. 1941\u201342", desc: "Layered canyon walls fill nearly the whole frame, a network of jagged ridgelines repeating at every scale down into deep shadow.",
+    analysis: "There's no single leading line here — just one consistent, jagged texture repeating until it reads as a continuous surface, with only a thin strip of sky left for the eye to land outside it. When a landscape has no obvious line to follow, filling the frame edge-to-edge with one repeating texture can carry the composition instead.",
+    img: "images/8aea279cafa959505e408419e8302b40.jpg",
+    recreate: { light: "Strong side or cross-lighting, ideally midday to afternoon — this is what carves shadow into rock texture.", focus: "Deep focus front to back, everything sharp.", exposure: "Use HDR or bracket to hold detail in both sunlit rock and deep shadow.", post: "B&W, strong contrast, boost local texture/clarity throughout, keep the sky strip small and simple." },
+    c: { symmetry: 0.3, thirds: 0.35, diagonal: 0.3, negSpace: 0.15 },
+    f: { brightness: 0.55, contrast: 0.8, warmth: 0.0, row: 0.55, col: 0.55 } },
+  { title: "Moonrise, Hernandez", byline: "Ansel Adams, 1941", desc: "A pale moon and clouds over a dark New Mexico village, crosses catching the last light.",
+    analysis: "Adams printed the sky almost black so the small bright moon and the lit crosses are the only things the eye can land on. Extreme contrast can substitute for a zoom lens — it isolates a small subject in a wide scene.",
+    recreate: { light: "Golden hour with the moon already visible — a narrow window of a few minutes.", focus: "Deep focus across the whole scene.", exposure: "Expose for the sky and moon; let the foreground go very dark.", post: "B&W, push the sky to near-black with curves, keep just a few bright details lit." },
+    c: { symmetry: 0.45, thirds: 0.7, diagonal: 0.1, negSpace: 0.8 },
+    f: { brightness: 0.28, contrast: 0.88, warmth: -0.1, row: 0.22, col: 0.55 } },
+  { title: "Cloud Study", byline: "Forman Hanna, ca. 1925", desc: "A glowing mass of storm cloud fills almost the entire frame, the ground reduced to a thin dark silhouette at the bottom edge.",
+    analysis: "There's no conventional subject here at all — just light, given enough dark negative space around it to carry the whole frame on its own. A thin strip of dark ground is often all the context a sky needs; when light itself is the most interesting thing in a scene, let almost nothing else compete with it.",
+    img: "images/fd02e60d412ce7399ce2beb9a0cb9733.jpg",
+    recreate: { light: "Dramatic storm or sunset light — clouds lit from behind or below a hidden sun.", focus: "Doesn't matter much; everything is at infinity.", exposure: "Expose for the brightest part of the cloud only; let sky and ground go very dark.", post: "B&W, push contrast hard, deepen blacks so only the cloud's glow remains legible." },
+    c: { symmetry: 0.45, thirds: 0.45, diagonal: 0.1, negSpace: 0.75 },
+    f: { brightness: 0.35, contrast: 0.75, warmth: 0.05, row: 0.58, col: 0.55 } },
+  { title: "Dovima with Elephants", byline: "Richard Avedon, 1955", desc: "A gowned figure between two circus elephants, stark studio light.",
+    analysis: "Scale contrast — a slender figure between two enormous animals — makes the composition before any pose or expression matters. Placing your subject against something wildly mismatched in size is an easy way to generate tension.",
+    recreate: { light: "Flat, even light with minimal shadow — bright overcast or diffused studio light.", focus: "Sharp on the subject.", exposure: "Balanced, high-key — nothing should go very dark.", post: "High-contrast B&W, clean whites, minimal grain for a polished finish." },
+    c: { symmetry: 0.7, thirds: 0.3, diagonal: 0.1, negSpace: 0.5 },
+    f: { brightness: 0.45, contrast: 0.82, warmth: 0.0, row: 0.4, col: 0.5 } },
+  { title: "Young Woman in Pueblo Window", byline: "Forman Hanna, ca. 1925", desc: "A young woman wrapped in a plaid blanket looks out from a dark window opening set into a wide, plainly plastered adobe wall.",
+    analysis: "The window does the framing, but the picture doesn't centre it — it's pushed to the left third, leaving a long stretch of plain textured wall doing nothing but giving it room to breathe. A frame-within-a-frame doesn't need to sit in the middle of the photo; letting it sit off to one side, with real empty space beside it, often feels more considered than centring it would.",
+    img: "images/62c8906414ba451a42030f2595881ee5.jpg",
+    recreate: { light: "Bright, even daylight on a plain wall; leave the window opening itself unlit for natural contrast.", focus: "Soft rather than tack-sharp suits this one — a gentle, slightly unfocused look on the face.", exposure: "Expose for the bright wall; let the window interior fall dark on its own.", post: "B&W, keep subtle texture in the wall rather than blowing it to flat white; moderate contrast." },
+    c: { symmetry: 0.2, thirds: 0.65, diagonal: 0.15, negSpace: 0.7 },
+    f: { brightness: 0.62, contrast: 0.7, warmth: 0.05, row: 0.35, col: 0.3 } },
+  { title: "American Gothic, Washington D.C.", byline: "Gordon Parks, 1942", desc: "A cleaning woman stands before an American flag, broom and mop in hand.",
+    analysis: "A dead-centre, symmetrical, almost formal pose against a flag turns a portrait into a statement — the composition itself is the argument. Centring a subject reads as deliberate and confrontational, not lazy, when the context earns it.",
+    img: "images/7c4a9b925c0cb142cf58a53a2ab58bc9.jpg",
+    recreate: { light: "Even, frontal light with no strong shadow.", focus: "Sharp, straight-on, camera at subject's eye level.", exposure: "Standard, balanced — nothing dramatic.", post: "B&W, moderate contrast. Keep it plain rather than dramatic; the symmetry is the statement." },
+    c: { symmetry: 0.85, thirds: 0.25, diagonal: 0.0, negSpace: 0.4 },
+    f: { brightness: 0.5, contrast: 0.65, warmth: 0.0, row: 0.4, col: 0.5 } },
+  { title: "Climbing into America", byline: "Lewis Hine, 1905", desc: "A family and their bundled belongings, just arrived at Ellis Island.",
+    analysis: "Hine let the family fill almost the whole frame with no wasted background — every object visible (the bundles, the coats) is evidence, not clutter. In documentary work, tight framing on belongings can tell as much story as faces.",
+    img: "images/48dcd7e83f1dde3a2eb2a7138b093480.jpg",
+    recreate: { light: "Available daylight, documentary snapshot style — nothing staged.", focus: "Sharp, filling the frame with subject and belongings, minimal empty space.", exposure: "Standard daylight exposure.", post: "B&W, moderate grain, resist the urge to crop wider than necessary." },
+    c: { symmetry: 0.4, thirds: 0.5, diagonal: 0.15, negSpace: 0.15 },
+    f: { brightness: 0.52, contrast: 0.55, warmth: 0.0, row: 0.5, col: 0.5 } },
+  { title: "Winter, Fifth Avenue", byline: "Alfred Stieglitz, 1893", desc: "A hansom cab in a snowstorm, the avenue dissolved into haze.",
+    analysis: "Low contrast and falling snow erase the background almost entirely, leaving one small dark shape in a field of grey. Bad weather that would normally 'ruin' a shot can instead simplify it drastically — let it.",
+    img: "images/f34bd828b4e04323303cd209e7ccbacf.jpg",
+    recreate: { light: "Fog, rain, or snow — anything that visually flattens a background.", focus: "Sharp on the one dark subject; let everything else dissolve.", exposure: "Slightly overexpose the background so it goes near-white, keep the subject dark and defined.", post: "B&W, reduce contrast and clarity in the background only." },
+    c: { symmetry: 0.25, thirds: 0.55, diagonal: 0.15, negSpace: 0.85 },
+    f: { brightness: 0.68, contrast: 0.3, warmth: -0.1, row: 0.6, col: 0.4 } },
+  { title: "Georgia O'Keeffe: Hands", byline: "Alfred Stieglitz, c. 1919", desc: "Two hands nearly touching, fingertips a breath apart, against dark folded fabric.",
+    analysis: "Almost nothing is happening — two hands, not quite touching — and that gap is the entire charge of the image. The moment just before contact is often more compelling than contact itself; a near-miss holds tension a resolved gesture releases.",
+    img: "images/17ff92afc5d2175d0c1624c45f69d467.jpg",
+    recreate: { light: "Soft directional window light, dark fabric or cloth behind for the background to fall into shadow.", focus: "Sharp on the nearer hand.", exposure: "Expose for the skin highlights; let the dark fabric go deep and detail-less.", post: "Warm sepia tone, moderate contrast — no vignette needed, the dark background already frames it." },
+    c: { symmetry: 0.2, thirds: 0.5, diagonal: 0.4, negSpace: 0.55 },
+    f: { brightness: 0.38, contrast: 0.62, warmth: 0.5, row: 0.5, col: 0.45 } },
+  { title: "Rue Mouffetard", byline: "Henri Cartier-Bresson, 1954", desc: "A boy grins, two wine bottles cradled under his arms, Paris.",
+    analysis: "The expression is everything here — a plain street background stays out of the way of one unguarded, perfectly timed grin. When you have a strong candid moment, resist the urge to add more to the frame around it.",
+    recreate: { light: "Available daylight on a plain street.", focus: "Pre-focus (zone focus) at the distance you expect your subject to be, then wait for the moment.", exposure: "Standard, unremarkable — nothing should call attention to the exposure choices.", post: "B&W, candid grain. Leave the background plain — don't crop for drama." },
+    c: { symmetry: 0.4, thirds: 0.55, diagonal: 0.15, negSpace: 0.5 },
+    f: { brightness: 0.55, contrast: 0.58, warmth: 0.05, row: 0.55, col: 0.45 } },
+  { title: "Charles Baudelaire", byline: "Nadar, 1855", desc: "The poet reclines against a carved chair back, head resting on his own hand, gaze drifting past the camera.",
+    analysis: "His head tilts against his own hand and his eyes drift off past the lens — an utterly relaxed, private pose, more like catching someone mid-thought than sitting for a photograph. Letting a subject's head rest on something, a hand, a wall, a chair back, reads as informal even when everything else about the shot is staged.",
+    img: "images/2a6f40054d57bad068793bc614d6d147.webp",
+    recreate: { light: "Soft window light, dark background or clothing to let it recede.", focus: "Slightly relaxed rather than tack-sharp — focus a touch off the eyes for a dreamier feel.", exposure: "Expose for the lit side of the face; let background and dark clothing merge into shadow.", post: "Warm sepia tone, moderate contrast, avoid heavy sharpening." },
+    c: { symmetry: 0.2, thirds: 0.5, diagonal: 0.55, negSpace: 0.45 },
+    f: { brightness: 0.55, contrast: 0.5, warmth: 0.35, row: 0.3, col: 0.55 } },
+  { title: "Sir John Herschel", byline: "Julia Margaret Cameron, 1867", desc: "The astronomer photographed slightly out of focus, white hair lit like a halo against near-total darkness.",
+    analysis: "Cameron shot soft-focus on purpose and let his hair blow loose — an approach her contemporaries considered a technical failure became the entire emotional charge of the image. A deliberately imperfect, unposed edge can read as more truthful than a crisp, controlled likeness.",
+    img: "images/5bf0c7dc51b3e307d0f1d7b442bf5db4.webp",
+    recreate: { light: "Single window as the only light source, subject close to it, nothing else lit — that's what drops the background to black.", focus: "Deliberately miss focus by a hair — tap slightly in front of or behind the eyes.", exposure: "Expose for the highlights (hair), let the background fall to near-black.", post: "Warm sepia curve, lift blacks very slightly so they're not pure crushed black, low-opacity soft-glow filter." },
+    c: { symmetry: 0.6, thirds: 0.4, diagonal: 0.15, negSpace: 0.7 },
+    f: { brightness: 0.3, contrast: 0.75, warmth: 0.4, row: 0.35, col: 0.48 } },
+  { title: "Sharecropper's Wife and Children, Arkansas", byline: "Arthur Rothstein, 1935", desc: "A sick child rests in bed while an older sister leans in and two more children look on. The black circles are Roy Stryker's own 'kill' punches, physically marking the negative as rejected for distribution.",
+    analysis: "The four figures form one continuous diagonal — reclining child at bottom left, up through the leaning sister, to the two watching from the doorway — which holds a crowded, unposed scene together as a single line. When several people sit at different distances in a scene, look for the line that connects them and shoot from the angle that keeps it unbroken.",
+    img: "images/7f01ff691e925c2a47143871beacbf81.jpg",
+    recreate: { light: "Available indoor daylight through a window, mixed with shadow.", focus: "Deep enough focus to keep a group at varying distances all reasonably sharp.", exposure: "Expose for the group's mid-tones, allow natural falloff into shadow.", post: "B&W, keep grain and imperfection — don't over-clean; the roughness is part of the honesty." },
+    c: { symmetry: 0.2, thirds: 0.5, diagonal: 0.6, negSpace: 0.2 },
+    f: { brightness: 0.4, contrast: 0.7, warmth: 0.0, row: 0.4, col: 0.6 } },
+  { title: "Italian Woman", byline: "Augustus Sherman, c. 1905", desc: "An Ellis Island arrival in a dark fringed headscarf, gaze tilted up and past the camera, studio backdrop behind her.",
+    analysis: "The dark shawl frames her face like a hood, and her eyes lift past the lens rather than meeting it — the effect reads as dignified rather than processed. A dark frame-within-the-frame around a face, paired with a gaze that avoids the camera, can turn an ID-style portrait into something closer to a formal likeness.",
+    img: "images/ecc4c7b51a257887fba8f77567d92dec.jpg",
+    recreate: { light: "Soft, even studio-style light — diffused window light works well.", focus: "Sharp on the face.", exposure: "Standard, avoid harsh shadow.", post: "Sepia tone, moderate contrast — keep dark fabric rich in detail, not crushed to black." },
+    c: { symmetry: 0.55, thirds: 0.5, diagonal: 0.15, negSpace: 0.35 },
+    f: { brightness: 0.6, contrast: 0.55, warmth: 0.35, row: 0.3, col: 0.48 } },
+  { title: "Child Laborer, National Child Labor Committee", byline: "Lewis Hine, c. 1908\u20131924", desc: "A young mill worker looks straight into the camera, flanked by partially visible coworkers, a hand resting on her shoulder from just outside the frame.",
+    analysis: "The cropped figures at both edges and the hand entering from off-frame imply a whole crowd of coworkers without showing a single one in full. A tight crop that lets other elements bleed off the edges can say 'this is one of many' without ever widening the shot.",
+    img: "images/2c4135ad58a5eabf75c3d9e6c50de65c.jpg",
+    recreate: { light: "Available light wherever the scene is — documentary, not staged.", focus: "Sharp on the main subject's face; figures at the edges can be softer.", exposure: "Standard, balanced.", post: "B&W, moderate contrast, optional sepia — crop so other figures bleed intentionally off the edges." },
+    c: { symmetry: 0.55, thirds: 0.35, diagonal: 0.15, negSpace: 0.2 },
+    f: { brightness: 0.6, contrast: 0.5, warmth: 0.45, row: 0.32, col: 0.5 } },
+  { title: "Allie Mae Burroughs", byline: "Walker Evans, 1936", desc: "A tenant farmer's wife, photographed straight-on against bare clapboard siding, for Let Us Now Praise Famous Men.",
+    analysis: "Evans shot her level, tight, and without a single flattering choice — no tilt, no soft light, no coaxed smile. Stripping away every flourish can read as more respectful of a subject than softening the shot would.",
+    img: "images/4170c41b66c7b58c004c36bf24550ce4.jpg",
+    recreate: { light: "Flat, even outdoor light — open shade against a plain wall.", focus: "Tack sharp, fill the frame with the face.", exposure: "Even, no dramatic shadow side.", post: "B&W, moderate-to-high contrast to bring out skin and wall texture — skip any smoothing filter." },
+    c: { symmetry: 0.7, thirds: 0.3, diagonal: 0.0, negSpace: 0.2 },
+    f: { brightness: 0.62, contrast: 0.55, warmth: 0.0, row: 0.3, col: 0.5 } },
+  { title: "Bud Fields and His Family at Home", byline: "Walker Evans, 1935", desc: "A tenant farmer family grouped on their porch, Hale County, Alabama \u2014 the same Let Us Now Praise Famous Men project as Allie Mae Burroughs. The colour reference strip and catalogue tag on the edges are the Library of Congress's own archival scan, not part of Evans's original frame.",
+    analysis: "The family doesn't form one tight cluster — there's a real gap between the mother and infant on the left and the four gathered on the right, bridged only by the standing girl positioned exactly in that gap. Splitting a group into two loosely connected units, rather than posing everyone shoulder to shoulder, can feel more like a household caught in a moment than a formal portrait.",
+    img: "images/255bc761157716f48018d0bd0a54ce85.jpg",
+    recreate: { light: "Even interior daylight through a window or open door, no direct sun.", focus: "Deep enough to keep the whole group sharp at a moderate distance.", exposure: "Standard, balanced across the group.", post: "B&W, moderate contrast, keep environmental detail (wall, floor, clothing texture) visible rather than blown out — it's part of the documentary honesty." },
+    c: { symmetry: 0.25, thirds: 0.35, diagonal: 0.3, negSpace: 0.15 },
+    f: { brightness: 0.55, contrast: 0.55, warmth: 0.05, row: 0.35, col: 0.55 } },
+  { title: "Rows of Laundry, New York City", byline: "Photographer unknown, 1935", desc: "Clotheslines strung across a tenement airshaft, movie-house handbills papering the wall below.",
+    analysis: "Nothing here is a conventional subject — it's the repetition of shapes at regular intervals that makes the wall into a composition. Look for anything strung, stacked, or hung in a row; repetition can carry a frame with no single focal point at all.",
+    img: "images/efbb56522ebda4c0b32bb7d348fd1eba.jpg",
+    recreate: { light: "Bright daylight, subject backlit against a darker wall.", focus: "Deep focus — the whole repeated pattern needs to stay legible.", exposure: "Expose for the bright repeated elements; let the wall behind go darker for contrast.", post: "B&W, boost contrast between light and dark elements, keep fine detail sharp." },
+    c: { symmetry: 0.5, thirds: 0.4, diagonal: 0.1, negSpace: 0.15 },
+    f: { brightness: 0.55, contrast: 0.68, warmth: 0.1, row: 0.4, col: 0.5 } },
+  { title: "Portrait of Charles de Gaulle", byline: "Office of War Information, c. 1942\u201344", desc: "General de Gaulle, arms crossed, photographed against a bare dark curtain.",
+    analysis: "A plain dark backdrop and a closed, arms-crossed pose do the characterisation — nothing else in the frame is allowed to soften or explain him. An undetailed dark background is a fast way to make a portrait feel formal and unyielding.",
+    img: "images/d1e70af0f83ab6b8ddd7e65f284b492f.jpg",
+    recreate: { light: "Single key light on the subject, subject positioned far from any lit background so it falls to black.", focus: "Sharp on the face.", exposure: "Tap to expose on the face; let the background underexpose to near-black.", post: "B&W, deep blacks, moderate-to-high contrast." },
+    c: { symmetry: 0.35, thirds: 0.5, diagonal: 0.35, negSpace: 0.65 },
+    f: { brightness: 0.32, contrast: 0.72, warmth: 0.0, row: 0.28, col: 0.55 } },
+  { title: "Liberation Parade, Champs-\u00c9lys\u00e9es", byline: "U.S. Army Signal Corps, August 1944", desc: "Armored vehicles roll beneath the Arc de Triomphe as crowds pack both sides of the avenue, Paris.",
+    analysis: "The avenue itself is the composition — a straight road converging dead-centre on the arch pulls the eye through the whole frame in one line. When a real vanishing point exists in a scene, centring the camera on it is often the simplest strong composition available.",
+    img: "images/739dd279d9239e520b906c321161c59a.jpg",
+    recreate: { light: "Bright midday sun.", focus: "Deep focus, camera centred precisely on the vanishing point of the road.", exposure: "Standard daylight; slight negative exposure compensation for a bright sky.", post: "Keep colour natural, maybe slightly desaturated for a vintage feel — don't crop off the symmetry." },
+    c: { symmetry: 0.8, thirds: 0.25, diagonal: 0.1, negSpace: 0.45 },
+    f: { brightness: 0.68, contrast: 0.45, warmth: 0.15, row: 0.35, col: 0.5 } },
+  { title: "Rita Hayworth, Studio Portrait", byline: "Office of War Information, c. 1943", desc: "A publicity photograph, a sculptural pose lit against plain pedestal shapes in a studio.",
+    analysis: "The set pieces are deliberately abstract — blank cylindrical forms, not furniture — so nothing competes with the line of the pose. Plain geometric shapes make effective, cheap backdrops precisely because they read as form rather than place.",
+    img: "images/9d5feeb44a1495ad8ba315a8645d6348.jpg",
+    recreate: { light: "Soft, even light, minimal shadow — a plain, unpatterned backdrop.", focus: "Sharp on the figure.", exposure: "Bright, high-key — expose for the highlights, let everything stay light.", post: "B&W, low-to-moderate contrast; a gentle soft-focus filter suits this one, unlike the documentary shots." },
+    c: { symmetry: 0.6, thirds: 0.4, diagonal: 0.15, negSpace: 0.55 },
+    f: { brightness: 0.7, contrast: 0.4, warmth: 0.0, row: 0.45, col: 0.55 } },
+  { title: "Butte, Montana", byline: "Russell Lee, 1942", desc: "A mining town spread across a valley floor, mountains stacked behind it under scattered cloud.",
+    analysis: "Three clean horizontal bands — sky, mountains, town — stack the frame into layers before any single building matters. A high vantage point that flattens a sprawling scene into stripes is an easy way to give it order.",
+    img: "images/fad424748e8528375168725fc621cdd2.jpg",
+    recreate: { light: "Bright, clear daylight; distant haze naturally softens far layers.", focus: "Deep focus front to back.", exposure: "Standard daylight, watch the bright sky doesn't blow out.", post: "Keep colour naturalistic, slightly warm; don't crop tight — let the horizontal bands breathe." },
+    c: { symmetry: 0.5, thirds: 0.6, diagonal: 0.1, negSpace: 0.4 },
+    f: { brightness: 0.65, contrast: 0.45, warmth: 0.2, row: 0.55, col: 0.5 } },
+
+  // Technique-only entries: still under copyright (estate or agency actively
+  // manages rights), so no image — the composition lesson and recreate
+  // guidance stand on their own, referencing the real photograph by
+  // description rather than reproducing it.
+  { title: "Trolley — New Orleans", byline: "Robert Frank, 1955 (style study, no image)", desc: "A streetcar's row of windows divides each passenger into their own separate frame, shot from outside through the glass.",
+    analysis: "The trolley's row of windows turns one photograph into a grid of small separate portraits, each rider isolated in their own frame within the frame. When a scene already has a repeating structure — windows, doorways, fence posts — shooting straight-on can turn it into a naturally divided grid of sub-portraits.",
+    recreate: { light: "Available daylight, harsh or contrasty is fine — Frank printed gritty, not polished.", focus: "Sharp enough to read expressions through glass.", exposure: "Standard; let some panes go darker or lighter naturally.", post: "B&W, boost grain, deep blacks, a slightly rough contrast curve rather than smooth tonal grading." },
+    c: { symmetry: 0.5, thirds: 0.4, diagonal: 0.1, negSpace: 0.2 },
+    f: { brightness: 0.5, contrast: 0.6, warmth: 0.0, row: 0.4, col: 0.5 } },
+  { title: "The Red Ceiling", byline: "William Eggleston, 1973 (style study, no image)", desc: "A blood-red painted ceiling, wires radiating out from a bare bulb, shot from below — an ordinary domestic ceiling made the entire subject.",
+    analysis: "Eggleston pointed the camera at a ceiling — the part of a room nobody looks at — and let one saturated colour be the whole subject. Ordinary, overlooked parts of a scene (a ceiling, a parking lot, a shopping cart) can carry a photograph on colour and geometry alone, without a conventional subject.",
+    recreate: { light: "Available indoor light, doesn't need to flatter — ordinary lighting is the point.", focus: "Sharp, deadpan, no soft-focus.", exposure: "Expose to keep the dominant colour fully saturated, not washed out.", post: "Boost saturation on the dominant colour specifically; keep everything else true-to-life." },
+    c: { symmetry: 0.55, thirds: 0.3, diagonal: 0.35, negSpace: 0.55 },
+    f: { brightness: 0.4, contrast: 0.45, warmth: 0.7, row: 0.45, col: 0.5 } },
+  { title: "McLean, Virginia", byline: "Joel Sternfeld, 1978 (style study, no image)", desc: "A fireman calmly buys a pumpkin at a roadside stand while a house burns in the background \u2014 large-format clarity holding both equally sharp.",
+    analysis: "The joke only works because foreground and background are rendered with equal, unhurried clarity — nothing is softened to hint that it matters less. Look for two unrelated things happening in the same frame, and hold both in sharp focus so the viewer has to notice the connection themselves.",
+    recreate: { light: "Even daylight, nothing dramatic.", focus: "Deep focus front to back — everything sharp, no separation via blur.", exposure: "Standard, balanced across the whole scene.", post: "Color, naturalistic, understated — the irony should feel barely noticed, not staged." },
+    c: { symmetry: 0.25, thirds: 0.55, diagonal: 0.15, negSpace: 0.5 },
+    f: { brightness: 0.6, contrast: 0.45, warmth: 0.15, row: 0.5, col: 0.4 } },
+  { title: "Identical Twins, Roselle, New Jersey", byline: "Diane Arbus, 1967 (style study, no image)", desc: "Two sisters in matching dresses, photographed dead centre, direct flash, both looking straight into the lens with near-identical but subtly different expressions.",
+    analysis: "Perfect symmetry between two people, combined with direct flash and a level, unflinching gaze, makes the tiny differences between them the entire subject. With two very similar subjects, matching the framing exactly can make their small human differences the most interesting thing in the photograph.",
+    recreate: { light: "Direct, flat on-camera flash — not flattering, and that's the point.", focus: "Sharp on both faces equally.", exposure: "Balanced flash exposure, avoid shadow falloff to one side.", post: "B&W, minimal retouching, let the flatness of the light stand." },
+    c: { symmetry: 0.8, thirds: 0.2, diagonal: 0.05, negSpace: 0.35 },
+    f: { brightness: 0.6, contrast: 0.6, warmth: 0.0, row: 0.35, col: 0.5 } },
+  { title: "World's Fair, New York", byline: "Garry Winogrand, 1964 (style study, no image)", desc: "A busy street scene shot close and wide, horizon tilted, several unrelated moments happening simultaneously across the frame.",
+    analysis: "Winogrand tilted the horizon and got physically close with a wide lens, so the frame reads as barely-controlled chaos rather than a composed 'shot' — several small dramas compete for attention instead of one clear subject. Deliberately tilting the frame and standing closer than feels comfortable can turn a static scene into something that feels caught mid-motion.",
+    recreate: { light: "Available daylight, doesn't need to be soft or flattering.", focus: "Sharp foreground, deep enough to read background action too.", exposure: "Standard street exposure, fast enough shutter to freeze movement.", post: "B&W, moderate contrast, keep the tilt — don't crop the energy out." },
+    c: { symmetry: 0.2, thirds: 0.4, diagonal: 0.4, negSpace: 0.15 },
+    f: { brightness: 0.55, contrast: 0.55, warmth: 0.0, row: 0.45, col: 0.5 } },
+  { title: "New York (children with chalk)", byline: "Helen Levitt, c. 1940 (style study, no image)", desc: "Children playing in the street, caught mid-gesture, chalk drawings on the sidewalk around them \u2014 completely unposed, unaware of the camera.",
+    analysis: "Nobody in the frame is aware of being photographed — the composition depends entirely on Levitt being close enough to see the moment but invisible enough not to change it. Getting physically close without being noticed captures a kind of unselfconscious gesture a posed shot never will.",
+    recreate: { light: "Available daylight.", focus: "Sharp on the main gesture, background can be soft.", exposure: "Fast shutter to freeze a fleeting motion — a jump, a throw, a spin.", post: "B&W, natural contrast, no dramatic grading — the moment carries the image." },
+    c: { symmetry: 0.25, thirds: 0.55, diagonal: 0.25, negSpace: 0.45 },
+    f: { brightness: 0.58, contrast: 0.5, warmth: 0.0, row: 0.5, col: 0.5 } },
+  { title: "The Critic", byline: "Weegee, 1943 (style study, no image)", desc: "Two glamorously dressed women arriving at the opera, caught by harsh direct flash, with a visibly poorer onlooker in the foreground staring at them.",
+    analysis: "Direct, harsh on-camera flash flattens everything equally and freezes the scene instantly — no flattering falloff, no soft edges, which is exactly what makes it feel documented rather than composed. A single harsh flash aimed straight at the subject can turn an ordinary scene into something that feels caught rather than staged.",
+    recreate: { light: "Direct on-camera flash, no diffusion.", focus: "Sharp, deep enough to catch foreground and background subjects both.", exposure: "Flash-balanced; let ambient light fall away to black behind the flash's reach.", post: "B&W, high contrast, deep blacks outside the flash's throw." },
+    c: { symmetry: 0.2, thirds: 0.5, diagonal: 0.25, negSpace: 0.25 },
+    f: { brightness: 0.45, contrast: 0.75, warmth: 0.0, row: 0.4, col: 0.45 } },
+  { title: "U.S. 10, Post Falls, Idaho", byline: "Stephen Shore, 1974 (style study, no image)", desc: "A deadpan, symmetrical American roadside scene \u2014 a gas station or street corner \u2014 shot in full colour with large-format clarity and no obvious emotional cue.",
+    analysis: "Shore composed ordinary roadside America with the same formal rigour a landscape painter would use for a mountain — centred, level, evenly lit, every sign and wire in focus. Treating a completely unremarkable place with total formal seriousness can make it feel worth looking at simply because of how carefully it's framed.",
+    recreate: { light: "Even daylight, midday is fine — nothing moody.", focus: "Deep focus, everything sharp.", exposure: "Balanced, natural colour, nothing crushed or blown.", post: "Colour, minimal grading — keep it looking like an accurate document, not a stylised photo." },
+    c: { symmetry: 0.7, thirds: 0.25, diagonal: 0.1, negSpace: 0.45 },
+    f: { brightness: 0.65, contrast: 0.4, warmth: 0.15, row: 0.45, col: 0.5 } },
+  { title: "New York City (dog legs)", byline: "Elliott Erwitt, 1974 (style study, no image)", desc: "Three sets of legs \u2014 a tiny dog in booties, its owner, and a huge dog \u2014 cropped at the knee, the joke entirely in the scale contrast and the crop itself.",
+    analysis: "Cropping out everything above the knee removes all context except the one relationship that matters — the wild difference in scale between the two dogs. Deliberately cropping out the 'obvious' part of a scene (the faces) can isolate the one visual relationship the photo is actually about.",
+    recreate: { light: "Available daylight, doesn't matter much.", focus: "Sharp on the main subjects at ground level — shoot from a low angle.", exposure: "Standard.", post: "B&W, natural contrast, crop tight and low — trust the joke to read without any faces in frame." },
+    c: { symmetry: 0.45, thirds: 0.45, diagonal: 0.1, negSpace: 0.5 },
+    f: { brightness: 0.55, contrast: 0.5, warmth: 0.0, row: 0.75, col: 0.5 } },
+  { title: "Corner Portrait", byline: "Irving Penn, style study, no image", desc: "A subject photographed pressed into the actual corner of a studio, two walls meeting behind them, isolating and slightly confining the pose.",
+    analysis: "Penn built an actual physical corner in the studio and posed subjects inside it — the confinement itself does the psychological work, no props or backdrop needed. A literal corner, or any tight physical space, can pressure a subject into a more revealing, less performed pose than an open studio would.",
+    recreate: { light: "Simple, even studio light — one or two sources, nothing elaborate.", focus: "Sharp on the face.", exposure: "Balanced; let the corner's shadow read naturally.", post: "B&W, clean, minimal retouching — let the physical setup do the work, not the processing." },
+    c: { symmetry: 0.65, thirds: 0.3, diagonal: 0.35, negSpace: 0.5 },
+    f: { brightness: 0.5, contrast: 0.6, warmth: 0.0, row: 0.35, col: 0.5 } },
+];
+
+// Compositional features carry roughly 2x the combined weight of tonal ones —
+// structure matters more here than colour/brightness matching.
+const WEIGHTS = {
+  brightness: 0.55, contrast: 0.65, warmth: 0.5, row: 0.55, col: 0.55,
+  symmetry: 1.1, thirds: 1.15, diagonal: 0.95, negSpace: 0.9
+};
+
+function distance(a, b) {
+  let d = 0;
+  d += WEIGHTS.brightness * Math.pow(a.brightness - b.brightness, 2);
+  d += WEIGHTS.contrast   * Math.pow(a.contrast   - b.contrast, 2);
+  d += WEIGHTS.warmth     * Math.pow((a.warmth - b.warmth) / 2, 2);
+  d += WEIGHTS.row         * Math.pow(a.row - b.row, 2);
+  d += WEIGHTS.col         * Math.pow(a.col - b.col, 2);
+  d += WEIGHTS.symmetry    * Math.pow(a.symmetry - b.symmetry, 2);
+  d += WEIGHTS.thirds      * Math.pow(a.thirds - b.thirds, 2);
+  d += WEIGHTS.diagonal    * Math.pow((a.diagonal - b.diagonal) / 2, 2);
+  d += WEIGHTS.negSpace    * Math.pow(a.negSpace - b.negSpace, 2);
+  return d;
+}
+
+function reasonFor(live, ref) {
+  const bits = [];
+  // Compositional checks first — these are what the match is now mostly about.
+  if (Math.abs(live.symmetry - ref.c.symmetry) < 0.18) {
+    bits.push(ref.c.symmetry > 0.55 ? "a similarly symmetric, balanced arrangement" : "a similarly loose, off-balance arrangement");
+  }
+  if (Math.abs(live.thirds - ref.c.thirds) < 0.15 && ref.c.thirds > 0.55) {
+    bits.push("the subject falls on a comparable rule-of-thirds point");
+  }
+  if (Math.abs(live.diagonal - ref.c.diagonal) < 0.3 && Math.abs(ref.c.diagonal) > 0.3) {
+    bits.push("a similarly strong diagonal running through the frame");
+  }
+  if (Math.abs(live.negSpace - ref.c.negSpace) < 0.18) {
+    bits.push(ref.c.negSpace > 0.55 ? "a similarly open, spacious frame" : "a similarly packed, detail-filled frame");
+  }
+  // Tonal checks fill in if composition didn't surface two reasons.
+  if (bits.length < 2 && Math.abs(live.brightness - ref.f.brightness) < 0.12) {
+    bits.push(live.brightness < 0.4 ? "a similarly dark, low-key frame" : (live.brightness > 0.62 ? "a similarly bright, open frame" : "a similar mid-tone balance"));
+  }
+  if (bits.length < 2 && Math.abs(live.contrast - ref.f.contrast) < 0.15 && ref.f.contrast > 0.6) {
+    bits.push("comparably hard contrast between light and shadow");
+  }
+  if (bits.length < 2 && Math.abs(live.warmth - ref.f.warmth) < 0.2 && Math.abs(ref.f.warmth) > 0.15) {
+    bits.push(ref.f.warmth > 0 ? "a similarly warm cast" : "a similarly cool cast");
+  }
+  if (bits.length === 0) bits.push("a loosely related visual structure");
+  return "WHY THIS ONE — " + bits.slice(0, 2).join(", ") + ".";
+}
+
+// ---- Camera / capture -------------------------------------------------
+const video = document.getElementById('video');
+const hint = document.getElementById('hint');
+const developBtn = document.getElementById('developBtn');
+const statusEl = document.getElementById('status');
+const fileInput = document.getElementById('fileInput');
+const flash = document.getElementById('flash');
+let ready = false;
+
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    video.srcObject = stream;
+    hint.style.display = 'none';
+    developBtn.disabled = false;
+    ready = true;
+    statusEl.textContent = 'camera ready';
+  } catch (err) {
+    hint.textContent = "Couldn't reach the camera (permissions, or no camera available). Use \u201cUse a photo instead\u201d below.";
+    statusEl.textContent = 'camera unavailable';
+  }
+}
+startCamera();
+
+const workCanvas = document.createElement('canvas');
+workCanvas.width = 32; workCanvas.height = 24;
+const wctx = workCanvas.getContext('2d', { willReadFrequently: true });
+
+function analyzeSource(source, sw, sh) {
+  wctx.drawImage(source, 0, 0, sw, sh, 0, 0, 32, 24);
+  const data = wctx.getImageData(0, 0, 32, 24).data;
+  let sumL = 0, sumR = 0, sumB = 0, n = 32 * 24;
+  const lumaGrid = [];
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i], g = data[i+1], b = data[i+2];
+    const l = (0.299*r + 0.587*g + 0.114*b) / 255;
+    lumaGrid.push(l);
+    sumL += l; sumR += r; sumB += b;
+  }
+  const brightness = sumL / n;
+  let variance = 0;
+  for (const l of lumaGrid) variance += Math.pow(l - brightness, 2);
+  const contrast = Math.min(1, Math.sqrt(variance / n) * 3.2);
+  const warmth = Math.max(-1, Math.min(1, (sumR - sumB) / (n * 255) * 6));
+
+  // 3x3 local-energy grid to find the focal cell
+  let best = { e: -1, row: 0.5, col: 0.5 };
+  const cw = 32/3, ch = 24/3;
+  for (let gy = 0; gy < 3; gy++) {
+    for (let gx = 0; gx < 3; gx++) {
+      let cellSum = 0, cellSumSq = 0, count = 0;
+      for (let y = Math.floor(gy*ch); y < Math.floor((gy+1)*ch); y++) {
+        for (let x = Math.floor(gx*cw); x < Math.floor((gx+1)*cw); x++) {
+          const l = lumaGrid[y*32 + x];
+          cellSum += l; cellSumSq += l*l; count++;
+        }
+      }
+      const mean = cellSum / count;
+      const energy = Math.max(0, cellSumSq/count - mean*mean);
+      if (energy > best.e) best = { e: energy, row: (gy+0.5)/3, col: (gx+0.5)/3 };
+    }
+  }
+
+  // Rule-of-thirds alignment: how close the focal point sits to one of the
+  // four third-line intersections. 1 = sitting right on one, 0 = dead centre
+  // or a corner, as far from any third-point as this frame allows.
+  const thirdPoints = [[1/3,1/3],[1/3,2/3],[2/3,1/3],[2/3,2/3]];
+  let minThirdDist = Infinity;
+  for (const [tr, tc] of thirdPoints) {
+    const d = Math.hypot(best.row - tr, best.col - tc);
+    if (d < minThirdDist) minThirdDist = d;
+  }
+  const thirds = Math.max(0, 1 - minThirdDist / 0.47);
+
+  // Symmetry: mirror the luma grid left-right and measure how closely it
+  // matches itself. High = balanced/symmetric, low = lopsided composition.
+  let symDiff = 0;
+  for (let y = 0; y < 24; y++) {
+    for (let x = 0; x < 16; x++) {
+      symDiff += Math.abs(lumaGrid[y*32 + x] - lumaGrid[y*32 + (31 - x)]);
+    }
+  }
+  const symmetry = Math.max(0, 1 - (symDiff / (24 * 16)) * 2.2);
+
+  // Diagonal structure: compare edge energy along the two diagonal
+  // directions. Positive = top-left-to-bottom-right dominant, negative =
+  // the other way, near 0 = no strong diagonal (symmetric/horizontal scenes).
+  let diagTLBR = 0, diagTRBL = 0;
+  for (let y = 0; y < 23; y++) {
+    for (let x = 0; x < 31; x++) {
+      diagTLBR += Math.abs(lumaGrid[y*32 + x] - lumaGrid[(y+1)*32 + (x+1)]);
+      diagTRBL += Math.abs(lumaGrid[y*32 + (x+1)] - lumaGrid[(y+1)*32 + x]);
+    }
+  }
+  const diagonal = Math.max(-1, Math.min(1, (diagTLBR - diagTRBL) / (diagTLBR + diagTRBL + 0.001) * 2.5));
+
+  // Negative space: fraction of a 6x6 grid of cells that are visually
+  // "flat" (low local variance) — high = open/empty composition, low = a
+  // frame packed with detail everywhere.
+  let flatCells = 0;
+  const ncw = 32/6, nch = 24/6;
+  const cellVars = [];
+  for (let gy = 0; gy < 6; gy++) {
+    for (let gx = 0; gx < 6; gx++) {
+      let cellSum = 0, cellSumSq = 0, count = 0;
+      for (let y = Math.floor(gy*nch); y < Math.floor((gy+1)*nch); y++) {
+        for (let x = Math.floor(gx*ncw); x < Math.floor((gx+1)*ncw); x++) {
+          const l = lumaGrid[y*32 + x];
+          cellSum += l; cellSumSq += l*l; count++;
+        }
+      }
+      const mean = cellSum / count;
+      cellVars.push(Math.max(0, cellSumSq/count - mean*mean));
+    }
+  }
+  const maxVar = Math.max(...cellVars, 0.0001);
+  for (const v of cellVars) if (v < maxVar * 0.12) flatCells++;
+  const negSpace = flatCells / cellVars.length;
+
+  return { brightness, contrast, warmth, row: best.row, col: best.col, symmetry, thirds, diagonal, negSpace };
+}
+
+function renderTonal(canvas, f) {
+  canvas.width = 160; canvas.height = 120;
+  const ctx = canvas.getContext('2d');
+  const base = Math.round(f.brightness * 255);
+  const tint = f.warmth;
+  const g = ctx.createRadialGradient(
+    f.col*160, f.row*120, 10,
+    f.col*160, f.row*120, 140
+  );
+  const light = Math.min(255, base + f.contrast*80);
+  const dark = Math.max(0, base - f.contrast*90);
+  function shade(v) {
+    const r = Math.min(255, Math.max(0, v + tint*40));
+    const b = Math.min(255, Math.max(0, v - tint*40));
+    return `rgb(${r|0},${v|0},${b|0})`;
+  }
+  g.addColorStop(0, shade(light));
+  g.addColorStop(1, shade(dark));
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,160,120);
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.fillRect(0,0,160,120);
+}
+
+function showResults(liveFeatures) {
+  const ranked = ARCHIVE
+    .map(ref => ({ ref, d: distance(liveFeatures, { ...ref.f, ...ref.c }) }))
+    .sort((a,b) => a.d - b.d)
+    .slice(0, 3);
+
+  const strip = document.getElementById('strip');
+  strip.innerHTML = '';
+  ranked.forEach((r, i) => {
+    const el = document.createElement('div');
+    el.className = 'frame';
+    const plate = r.ref.img
+      ? `<img class="tonal" src="${r.ref.img}" alt="${r.ref.title}">`
+      : `<canvas class="tonal"></canvas>`;
+    el.innerHTML = `
+      ${plate}
+      <div class="meta">
+        <div class="kicker mono">${reasonFor(liveFeatures, r.ref)}</div>
+        <h3>${r.ref.title}</h3>
+        <div class="byline mono">${r.ref.byline}</div>
+        <p class="desc">${r.ref.desc}</p>
+        <p class="analysis">${r.ref.analysis}</p>
+        <button class="recreate-btn">Recreate this look</button>
+      </div>`;
+    strip.appendChild(el);
+    if (!r.ref.img) renderTonal(el.querySelector('canvas.tonal'), r.ref.f);
+    el.querySelector('.recreate-btn').addEventListener('click', () => openRecreateModal(r.ref));
+  });
+  document.getElementById('results').style.display = 'block';
+}
+
+function openRecreateModal(ref) {
+  document.getElementById('modalTitle').textContent = ref.title;
+  document.getElementById('modalByline').textContent = ref.byline;
+  const rows = ref.recreate
+    ? ['light', 'focus', 'exposure', 'post'].map(key => `
+        <div class="recreate-row">
+          <div class="recreate-label mono">${key.toUpperCase()}</div>
+          <div class="recreate-value">${ref.recreate[key]}</div>
+        </div>`).join('')
+    : `<div class="recreate-row"><div class="recreate-value">No recreation notes for this one yet.</div></div>`;
+  document.getElementById('modalRows').innerHTML = rows;
+  document.getElementById('recreateModal').classList.add('open');
+}
+
+function closeRecreateModal() {
+  document.getElementById('recreateModal').classList.remove('open');
+}
+
+let galleryBuilt = false;
+function buildGallery() {
+  const grid = document.getElementById('galleryGrid');
+  grid.innerHTML = '';
+  ARCHIVE.forEach(ref => {
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+    const plate = ref.img
+      ? `<img class="thumb" src="${ref.img}" alt="${ref.title}">`
+      : `<canvas class="thumb"></canvas>`;
+    card.innerHTML = `
+      ${plate}
+      <div class="gc-meta">
+        <h4>${ref.title}</h4>
+        <div class="gc-byline mono">${ref.byline}</div>
+      </div>`;
+    grid.appendChild(card);
+    if (!ref.img) renderTonal(card.querySelector('canvas.thumb'), ref.f);
+    card.addEventListener('click', () => openRecreateModal(ref));
+  });
+  galleryBuilt = true;
+}
+
+const galleryBtn = document.getElementById('galleryBtn');
+const gallerySection = document.getElementById('gallerySection');
+galleryBtn.addEventListener('click', () => {
+  const opening = gallerySection.style.display === 'none';
+  if (opening) {
+    if (!galleryBuilt) buildGallery();
+    gallerySection.style.display = 'block';
+    galleryBtn.textContent = 'Hide gallery';
+    gallerySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    gallerySection.style.display = 'none';
+    galleryBtn.textContent = 'View gallery';
+  }
+});
+
+document.getElementById('modalClose').addEventListener('click', closeRecreateModal);
+document.getElementById('recreateModal').addEventListener('click', (e) => {
+  if (e.target.id === 'recreateModal') closeRecreateModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeRecreateModal();
+});
+
+developBtn.addEventListener('click', () => {
+  if (!ready) return;
+  flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+  const vw = video.videoWidth || 640, vh = video.videoHeight || 480;
+  const f = analyzeSource(video, vw, vh);
+  statusEl.textContent = `b ${f.brightness.toFixed(2)} · c ${f.contrast.toFixed(2)} · w ${f.warmth.toFixed(2)}`;
+  showResults(f);
+});
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    const f = analyzeSource(img, img.naturalWidth, img.naturalHeight);
+    statusEl.textContent = `from photo · b ${f.brightness.toFixed(2)} · c ${f.contrast.toFixed(2)}`;
+    showResults(f);
+  };
+  img.src = URL.createObjectURL(file);
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(err => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
